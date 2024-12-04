@@ -37,3 +37,20 @@ npx drizzle-kit generate
 
 - Opens up a checklist of items
 - Search, check, uncheck, add, remove, edit | Persistance
+
+```
+npx esbuild src/worker.ts --bundle --outfile=public/worker-1.js --platform=browser --format=esm --target=es2020
+
+npx esbuild src/worker.ts \
+  --bundle \
+  --outfile=public/worker-1.js \
+  --platform=browser \
+  --format=esm \
+  --target=es2020 \
+  --loader:.sql=text
+
+drizzle-orm SQLite Migrations
+```
+https://glitch.com/edit/#!/sqlite-wasm-opfs?path=public%2Findex.html%3A38%3A59
+https://sqlite.org/wasm/file/demo-123.js?txt
+https://github.com/sqlite/sqlite-wasm/tree/main

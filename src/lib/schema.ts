@@ -13,9 +13,19 @@ export const notesTable = sqliteTable("notes", {
   updated_at: text("updated_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
+  rand: text().default(""),
 });
 
-export const notesVersionsTable = sqliteTable("notes", {
+export const usersTable = sqliteTable("users", {
+  id: int().primaryKey({ autoIncrement: true }),
+  name: text(),
+  email: text().unique(),
+  created_at: text("created_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const notesVersionsTable = sqliteTable("notes_versions", {
   id: int().primaryKey({ autoIncrement: true }),
   note_id: text()
     .notNull()

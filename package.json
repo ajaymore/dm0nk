@@ -23,6 +23,7 @@
     "@react-navigation/bottom-tabs": "^7.0.0",
     "@react-navigation/native": "^7.0.0",
     "@shopify/flash-list": "1.7.1",
+    "@sqlite.org/sqlite-wasm": "^3.47.1-build1",
     "drizzle-orm": "^0.36.4",
     "expo": "~52.0.11",
     "expo-blur": "~14.0.1",

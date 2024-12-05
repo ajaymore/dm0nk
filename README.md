@@ -43,7 +43,7 @@ npx esbuild src/worker.ts --bundle --outfile=public/worker-1.js --platform=brows
 
 npx esbuild src/worker.ts \
   --bundle \
-  --outfile=public/worker-1.js \
+  --outfile=public/worker.js \
   --platform=browser \
   --format=esm \
   --target=es2020 \
@@ -54,3 +54,7 @@ drizzle-orm SQLite Migrations
 https://glitch.com/edit/#!/sqlite-wasm-opfs?path=public%2Findex.html%3A38%3A59
 https://sqlite.org/wasm/file/demo-123.js?txt
 https://github.com/sqlite/sqlite-wasm/tree/main
+
+- create worker.js based on latest migrations data
+- Deploy the app to dm0nk.app to test it out in production as PWA
+- Iterate on Notes

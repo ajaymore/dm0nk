@@ -1,0 +1,1 @@
+ALTER TABLE `notes_versions` ADD `updated_at_1` text DEFAULT CURRENT_TIMESTAMP NOT NULL;

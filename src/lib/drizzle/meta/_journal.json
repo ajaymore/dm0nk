@@ -22,6 +22,20 @@
       "when": 1733319341626,
       "tag": "0002_mighty_lilandra",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1733405360317,
+      "tag": "0003_military_lucky_pierre",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1733405579029,
+      "tag": "0004_tan_makkari",
+      "breakpoints": true
     }
   ]
 }

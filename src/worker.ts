@@ -1,6 +1,8 @@
 /// <reference lib="webworker" />
-
+import migrationsConfig from "@/lib/drizzle/migrations";
 import { Database, OpfsDatabase, Sqlite3Static } from "@sqlite.org/sqlite-wasm";
+import { QueryWithTypings, SQL, sql } from "drizzle-orm";
+import { SQLiteSyncDialect } from "drizzle-orm/sqlite-core";
 declare function importScripts(...urls: string[]): void;
 declare global {
   function sqlite3InitModule(config: {
@@ -9,7 +11,7 @@ declare global {
   }): Promise<any>;
 }
 
-const log = console.log;
+let log: typeof console.log = () => {};
 const error = console.error;
 
 let db: OpfsDatabase | Database;
@@ -18,32 +20,24 @@ const start = (sqlite3: Sqlite3Static) => {
   log("Running SQLite3 version", sqlite3.version.libVersion);
   db =
     "opfs" in sqlite3
-      ? new sqlite3.oo1.OpfsDb("/mydb.sqlite3")
-      : new sqlite3.oo1.DB("/mydb.sqlite3", "ct");
+      ? new sqlite3.oo1.OpfsDb("/mydb6.sqlite3")
+      : new sqlite3.oo1.DB("/mydb6.sqlite3", "ct");
   log(
     "opfs" in sqlite3
       ? `OPFS is available, created persisted database at ${db.filename}`
       : `OPFS is not available, created transient database ${db.filename}`
   );
-  // Your SQLite code here.
-  // migrations go here..
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      created_at TEXT DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
 
-  log("Database initialized with users table");
+  migrate();
+
+  log("Database initialized post migrations");
   self.postMessage({ type: "READY" });
 };
 
 // Handle messages from main thread
 self.onmessage = async (event) => {
   const { type, payload, responseId } = event.data;
-  console.log("worker", { type, payload, responseId });
+  log("worker", { type, payload, responseId });
 
   try {
     switch (type) {
@@ -73,6 +67,9 @@ const urlParams = new URL(self.location.href).searchParams;
 if (urlParams.has("sqlite3.dir")) {
   sqlite3Js = urlParams.get("sqlite3.dir") + "/" + sqlite3Js;
 }
+if (urlParams.has("sqlite3.logs") && urlParams.get("sqlite3.logs") === "true") {
+  log = console.log;
+}
 
 importScripts(sqlite3Js);
 
@@ -94,182 +91,143 @@ self
     }
   });
 
-// import migrationConfig from "@/lib/drizzle/migrations";
-// import {
-//   createTableRelationsHelpers,
-//   DefaultLogger,
-//   entityKind,
-//   sql,
-//   extractTablesRelationalConfig,
-//   type RelationalSchemaConfig,
-//   type TablesRelationalConfig,
-//   type DrizzleConfig,
-//   Logger,
-//   NoopLogger,
-//   SelectedFieldsOrdered,
-//   fillPlaceholders,
-//   type Query,
-// } from "drizzle-orm";
-// import {
-//   BaseSQLiteDatabase,
-//   SQLiteSyncDialect,
-//   type PreparedQueryConfig as PreparedQueryConfigBase,
-//   type SQLiteExecuteMethod,
-//   SQLitePreparedQuery,
-//   SQLiteSession,
-//   type SQLiteTransactionConfig,
-// } from "drizzle-orm/sqlite-core";
+interface MigrationMeta {
+  sql: string[];
+  folderMillis: number;
+  hash: string;
+  bps: boolean;
+}
 
-// // SQLite WASM specific types
-// interface SQLiteWasmRunResult {
-//   changes: number;
-//   lastInsertRowId: number | bigint;
-// }
+interface MigrationConfig {
+  journal: {
+    entries: { idx: number; when: number; tag: string; breakpoints: boolean }[];
+  };
+  migrations: Record<string, string>;
+}
 
-// export interface SQLiteWasmSessionOptions {
-//   logger?: Logger;
-// }
+function readMigrationFiles({
+  journal,
+  migrations,
+}: MigrationConfig): MigrationMeta[] {
+  const migrationQueries: MigrationMeta[] = [];
 
-// type PreparedQueryConfig = Omit<PreparedQueryConfigBase, "statement" | "run">;
+  for (const journalEntry of journal.entries) {
+    const query =
+      migrations[`m${journalEntry.idx.toString().padStart(4, "0")}`];
 
-// export class SQLiteWasmSession<
-//   TFullSchema extends Record<string, unknown>,
-//   TSchema extends TablesRelationalConfig
-// > extends SQLiteSession<"sync", SQLiteWasmRunResult, TFullSchema, TSchema> {
-//   static override readonly [entityKind]: string = "SQLiteWasmSession";
+    if (!query) {
+      throw new Error(`Missing migration: ${journalEntry.tag}`);
+    }
 
-//   private logger: Logger;
+    try {
+      const result = query.split("--> statement-breakpoint").map((it) => {
+        return it;
+      });
 
-//   constructor(
-//     private db: any, // SQLite WASM DB instance
-//     dialect: SQLiteSyncDialect,
-//     private schema: RelationalSchemaConfig<TSchema> | undefined,
-//     options: SQLiteWasmSessionOptions = {}
-//   ) {
-//     super(dialect);
-//     this.logger = options.logger ?? new NoopLogger();
-//   }
+      migrationQueries.push({
+        sql: result,
+        bps: journalEntry.breakpoints,
+        folderMillis: journalEntry.when,
+        hash: "",
+      });
+    } catch {
+      throw new Error(`Failed to parse migration: ${journalEntry.tag}`);
+    }
+  }
 
-//   prepareQuery<T extends Omit<PreparedQueryConfig, "run">>(
-//     query: Query,
-//     fields: SelectedFieldsOrdered | undefined,
-//     executeMethod: SQLiteExecuteMethod,
-//     isResponseInArrayMode: boolean,
-//     customResultMapper?: (rows: unknown[][]) => unknown
-//   ): SQLiteWasmPreparedQuery<T> {
-//     const stmt = this.db.prepare(query.sql);
-//     return new SQLiteWasmPreparedQuery(
-//       stmt,
-//       query,
-//       this.logger,
-//       fields,
-//       executeMethod,
-//       isResponseInArrayMode,
-//       customResultMapper
-//     );
-//   }
+  return migrationQueries;
+}
 
-//   override transaction<T>(
-//     transaction: (tx: SQLiteWasmTransaction<TFullSchema, TSchema>) => T,
-//     config: SQLiteTransactionConfig = {}
-//   ): T {
-//     const tx = new SQLiteWasmTransaction(
-//       "sync",
-//       this.dialect,
-//       this,
-//       this.schema
-//     );
-//     this.run(sql.raw(`begin${config?.behavior ? " " + config.behavior : ""}`));
-//     try {
-//       const result = transaction(tx);
-//       this.run(sql`commit`);
-//       return result;
-//     } catch (err) {
-//       this.run(sql`rollback`);
-//       throw err;
-//     }
-//   }
-// }
+function toQuery(sql: SQL<unknown>): QueryWithTypings {
+  const sqliteDialect = new SQLiteSyncDialect();
+  return sqliteDialect.sqlToQuery(sql);
+}
 
-// interface MigrationMeta {
-//   sql: string[];
-//   folderMillis: number;
-//   hash: string;
-//   bps: boolean;
-// }
+function migrate(
+  config?:
+    | string
+    | {
+        migrationsFolder: string;
+        migrationsTable?: string;
+        migrationsSchema?: string;
+      }
+) {
+  const migrations = readMigrationFiles(migrationsConfig);
+  const migrationsTable =
+    config === undefined
+      ? "__drizzle_migrations"
+      : typeof config === "string"
+      ? "__drizzle_migrations"
+      : config.migrationsTable ?? "__drizzle_migrations";
 
-// interface MigrationConfig {
-//   journal: {
-//     entries: { idx: number; when: number; tag: string; breakpoints: boolean }[];
-//   };
-//   migrations: Record<string, string>;
-// }
+  // create table
+  const migrationTableCreate = sql`
+        CREATE TABLE IF NOT EXISTS ${sql.identifier(migrationsTable)} (
+          id integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+          hash text,
+          created_at numeric
+        )
+      `;
 
-// async function readMigrationFiles({
-//   journal,
-//   migrations,
-// }: MigrationConfig): Promise<MigrationMeta[]> {
-//   const migrationQueries: MigrationMeta[] = [];
+  log(`migrationTableCreate`, toQuery(migrationTableCreate));
 
-//   for await (const journalEntry of journal.entries) {
-//     const query =
-//       migrations[`m${journalEntry.idx.toString().padStart(4, "0")}`];
+  db.exec({
+    sql: toQuery(migrationTableCreate).sql,
+  });
 
-//     if (!query) {
-//       throw new Error(`Missing migration: ${journalEntry.tag}`);
-//     }
+  const migrationTableCheck = sql`SELECT id, hash, created_at FROM ${sql.identifier(
+    migrationsTable
+  )} ORDER BY created_at DESC LIMIT 1`;
 
-//     try {
-//       const result = query.split("--> statement-breakpoint").map((it) => {
-//         return it;
-//       });
+  log("migrationTableCheck", toQuery(migrationTableCheck));
 
-//       migrationQueries.push({
-//         sql: result,
-//         bps: journalEntry.breakpoints,
-//         folderMillis: journalEntry.when,
-//         hash: "",
-//       });
-//     } catch {
-//       throw new Error(`Failed to parse migration: ${journalEntry.tag}`);
-//     }
-//   }
+  const dbMigrations = db.exec({
+    sql: toQuery(migrationTableCheck).sql,
+    returnValue: "resultRows",
+    rowMode: "object",
+  });
 
-//   return migrationQueries;
-// }
+  log("dbMigrations", JSON.stringify(dbMigrations));
 
-// export interface MigrationRunConfig {
-//   migrationsFolder: string;
-//   migrationsTable?: string;
-//   migrationsSchema?: string;
-// }
+  const lastDbMigration = dbMigrations[0] ?? undefined;
 
-// async function migrate(config?: string | MigrationRunConfig) {
-//   const migrations = await readMigrationFiles(migrationConfig);
-//   console.log("migrations", migrations);
-//   const migrationsTable =
-//     config === undefined
-//       ? "__drizzle_migrations"
-//       : typeof config === "string"
-//       ? "__drizzle_migrations"
-//       : config.migrationsTable ?? "__drizzle_migrations";
+  log("lastDbMigration", lastDbMigration);
+  log(toQuery(sql`BEGIN`).sql);
+  db.exec({ sql: toQuery(sql`BEGIN`).sql });
 
-//   const migrationTableCreate = sql`
-// 			CREATE TABLE IF NOT EXISTS ${sql.identifier(migrationsTable)} (
-// 				id SERIAL PRIMARY KEY,
-// 				hash text NOT NULL,
-// 				created_at numeric
-// 			)
-// 		`;
-//   // session.run(migrationTableCreate);
-//   const dbMigrations = session.values<[number, string, string]>(
-//     sql`SELECT id, hash, created_at FROM ${sql.identifier(
-//       migrationsTable
-//     )} ORDER BY created_at DESC LIMIT 1`
-//   );
-
-//   const lastDbMigration = dbMigrations[0] ?? undefined;
-//   session.run(sql`BEGIN`);
-// }
-
-// migrate();
+  try {
+    for (const migration of migrations) {
+      if (
+        !lastDbMigration ||
+        Number(lastDbMigration.created_at)! < migration.folderMillis
+      ) {
+        for (const stmt of migration.sql) {
+          log(toQuery(sql.raw(stmt)).sql);
+          db.exec({ sql: toQuery(sql.raw(stmt)).sql });
+        }
+        const stmt = toQuery(
+          sql`INSERT INTO ${sql.identifier(
+            migrationsTable
+          )} ("hash", "created_at") VALUES(${migration.hash}, ${
+            migration.folderMillis
+          })`
+        );
+        log(stmt.sql, stmt.params);
+        db.exec({
+          sql: stmt.sql,
+          bind: stmt.params as any,
+        });
+      }
+    }
+    log(toQuery(sql`COMMIT`).sql);
+    db.exec({ sql: toQuery(sql`COMMIT`).sql });
+  } catch (e) {
+    log(toQuery(sql`ROLLBACK`).sql);
+    db.exec({ sql: toQuery(sql`ROLLBACK`).sql });
+    if (e instanceof Error) {
+      error("Exception:", e.message);
+    } else {
+      error("Exception:", String(e));
+    }
+  }
+}

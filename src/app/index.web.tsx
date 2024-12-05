@@ -7,7 +7,6 @@ import { useEffect, useRef, useState } from "react";
 import { drizzle, SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
 import { notesTable, usersTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-type ResponseType = { rows: any[][] | any[] }[];
 import { library } from "@fortawesome/fontawesome-svg-core";
 import { faBell as farBell } from "@fortawesome/free-regular-svg-icons/faBell";
 import { faBookmark as farBookmark } from "@fortawesome/free-regular-svg-icons/faBookmark";
@@ -45,7 +44,6 @@ class Database {
   public db: SqliteRemoteDatabase<Record<string, never>>;
   private worker: Worker;
   private callbacks: Map<string, (value: any) => void>;
-  private ready = false;
 
   constructor(isReadyCallback: () => void) {
     this.db = drizzle(async (sql, params, method) => {
@@ -62,7 +60,7 @@ class Database {
         throw e;
       }
     });
-    this.worker = new Worker("worker-1.js?sqlite3.dir=jswasm");
+    this.worker = new Worker(`worker.js?sqlite3.dir=jswasm&sqlite3.logs=true`);
     this.callbacks = new Map();
 
     this.worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
@@ -106,50 +104,6 @@ class Database {
       this.worker.postMessage({ responseId: id, payload, type });
     });
   }
-
-  // private sendMessage<T>(
-  //   type: WorkerMessage["type"],
-  //   payload?: any
-  // ): Promise<T> {
-  //   return new Promise((resolve) => {
-  //     this.callbacks.set(type.replace("_", "ED_"), resolve);
-  //     this.worker.postMessage({ type, payload });
-  //   });
-  // }
-
-  // public listUsers(): Promise<User[]> {
-  //   console.log("sending to worker", "LIST_USERS");
-  //   return this.sendMessage<User[]>("LIST_USERS");
-  // }
-
-  // public createUser(userData: CreateUserData): Promise<User> {
-  //   console.log("sending message...");
-  //   return this.sendMessage<User>("CREATE_USER", userData);
-  // }
-
-  // public updateUser(id: number, userData: UpdateUserData): Promise<User> {
-  //   return this.sendMessage<User>("UPDATE_USER", { id, ...userData });
-  // }
-
-  // public deleteUser(id: number): Promise<number> {
-  //   return this.sendMessage<number>("DELETE_USER", id);
-  // }
-
-  // public async getUserById(id: number): Promise<User | undefined> {
-  //   const users = await this.listUsers();
-  //   return users.find((user) => user.id === id);
-  // }
-
-  // public async searchUsers(query: string): Promise<User[]> {
-  //   const users = await this.listUsers();
-  //   const lowercaseQuery = query.toLowerCase();
-
-  //   return users.filter(
-  //     (user) =>
-  //       user.name.toLowerCase().includes(lowercaseQuery) ||
-  //       user.email.toLowerCase().includes(lowercaseQuery)
-  //   );
-  // }
 }
 
 function useDatabase() {

@@ -34,4 +34,10 @@ export const notesVersionsTable = sqliteTable("notes_versions", {
   created_at: text("created_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
+  updated_at: text("updated_at")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
+  updated_at_1: text("updated_at_1")
+    .notNull()
+    .default(sql`CURRENT_TIMESTAMP`),
 });

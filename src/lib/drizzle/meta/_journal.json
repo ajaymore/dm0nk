@@ -36,6 +36,20 @@
       "when": 1733405579029,
       "tag": "0004_tan_makkari",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1733479381156,
+      "tag": "0005_quick_wolfsbane",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1733487778313,
+      "tag": "0006_equal_wolfpack",
+      "breakpoints": true
     }
   ]
 }

@@ -5,7 +5,9 @@ import { int, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 export const notesTable = sqliteTable("notes", {
   id: text().primaryKey(),
-  type: text(),
+  type: text().default("default").notNull(),
+  title: text().default("").notNull(),
+  listDisplayView: text("list_display_view").default("").notNull(),
   data: text(),
   created_at: text("created_at")
     .notNull()
@@ -13,7 +15,6 @@ export const notesTable = sqliteTable("notes", {
   updated_at: text("updated_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
-  rand: text().default(""),
 });
 
 export const usersTable = sqliteTable("users", {
@@ -41,3 +42,19 @@ export const notesVersionsTable = sqliteTable("notes_versions", {
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
 });
+
+/*
+
+- Inventory
+Ai Notes | Add OpenAI Key | Store using expo-secure-store
+- Weblinks
+- Pinned
+Memorise | Spaced Repetition
+Collection(Law Acts) | Files stored on the internet and copies on the device | Limit 10MB
+Checklist (Nesting)
+Trip
+Tasks
+- Workout | Diet
+- Double Entry ledger 
+    - Feeds(BlueSky, HackerNews, LokSatta, The Hindu, The Indian Express)
+*/

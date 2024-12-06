@@ -58,3 +58,33 @@ https://github.com/sqlite/sqlite-wasm/tree/main
 - create worker.js based on latest migrations data
 - Deploy the app to dm0nk.app to test it out in production as PWA
 - Iterate on Notes
+
+### Deployment
+
+```
+docker build -t ghcr.io/ajaymore/dm0nk:1.0.0 .
+docker push ghcr.io/ajaymore/dm0nk:1.0.0
+
+
+docker run -p 3000:3000 --name dm0nk \
+  ghcr.io/ajaymore/dm0nk:1.0.0
+
+ssh -i ~/.ssh/ajaymore_rsa ajay@206.189.132.156
+
+docker pull ghcr.io/ajaymore/dm0nk:1.0.0
+
+docker run -d --net reverse-proxy -p 3000:3000 \
+ --name dm0nk \
+ --restart always \
+ -e 'TZ=Asia/Kolkata' \
+ -e 'LETSENCRYPT_EMAIL=mail@ajaymore.in' \
+ -e 'LETSENCRYPT_HOST=dm0nk.app' \
+ -e 'VIRTUAL_HOST=dm0nk.app' \
+ -e 'VIRTUAL_PORT=3000' \
+ ghcr.io/ajaymore/dm0nk:1.0.0
+```
+
+```
+Inventory Item
+add -> choose type in modal -> Open Editor -> Ask for title first -> Show title on header -> click title to edit -> add, remove, edit, update items -> show count in_stock & out_stock on Masonry Display
+```

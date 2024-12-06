@@ -1,0 +1,20 @@
+{
+  "name": "dm0nk",
+  "main": "expo-router/entry",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "npx expo export -p web",
+    "start": "node server.js"
+  },
+  "jest": {
+    "preset": "jest-expo"
+  },
+  "dependencies": {
+    "compression": "^1.7.5",
+    "@expo/server": "^0.5.0",
+    "express": "^4.21.1",
+    "morgan": "^1.10.0"
+  },
+  "devDependencies": {},
+  "private": true
+}

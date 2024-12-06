@@ -44,6 +44,20 @@ var journal_default = {
       when: 1733405579029,
       tag: "0004_tan_makkari",
       breakpoints: true
+    },
+    {
+      idx: 5,
+      version: "6",
+      when: 1733479381156,
+      tag: "0005_quick_wolfsbane",
+      breakpoints: true
+    },
+    {
+      idx: 6,
+      version: "6",
+      when: 1733487778313,
+      tag: "0006_equal_wolfpack",
+      breakpoints: true
     }
   ]
 };
@@ -63,6 +77,12 @@ var military_lucky_pierre_default = "ALTER TABLE `notes_versions` ADD `updated_a
 // src/lib/drizzle/0004_tan_makkari.sql
 var tan_makkari_default = "ALTER TABLE `notes_versions` ADD `updated_at_1` text DEFAULT CURRENT_TIMESTAMP NOT NULL;";
 
+// src/lib/drizzle/0005_quick_wolfsbane.sql
+var quick_wolfsbane_default = 'PRAGMA foreign_keys=OFF;--> statement-breakpoint\nCREATE TABLE `__new_notes` (\n	`id` text PRIMARY KEY NOT NULL,\n	`type` text DEFAULT \'default\' NOT NULL,\n	`title` text DEFAULT \'\' NOT NULL,\n	`list_display_view` text DEFAULT \'\' NOT NULL,\n	`data` text,\n	`created_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,\n	`updated_at` text DEFAULT CURRENT_TIMESTAMP NOT NULL,\n	`rand` text DEFAULT \'\'\n);\n--> statement-breakpoint\nINSERT INTO `__new_notes`("id", "type", "title", "list_display_view", "data", "created_at", "updated_at", "rand") SELECT "id", "type", \'\' as "title", \'\' as "list_display_view", "data", "created_at", "updated_at", "rand" FROM `notes`;--> statement-breakpoint\nDROP TABLE `notes`;--> statement-breakpoint\nALTER TABLE `__new_notes` RENAME TO `notes`;--> statement-breakpoint\nPRAGMA foreign_keys=ON;';
+
+// src/lib/drizzle/0006_equal_wolfpack.sql
+var equal_wolfpack_default = "ALTER TABLE `notes` DROP COLUMN `rand`;";
+
 // src/lib/drizzle/migrations.js
 var migrations_default = {
   journal: journal_default,
@@ -71,7 +91,9 @@ var migrations_default = {
     m0001: slimy_bloodstorm_default,
     m0002: mighty_lilandra_default,
     m0003: military_lucky_pierre_default,
-    m0004: tan_makkari_default
+    m0004: tan_makkari_default,
+    m0005: quick_wolfsbane_default,
+    m0006: equal_wolfpack_default
   }
 };
 

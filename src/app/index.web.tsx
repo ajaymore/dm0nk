@@ -1,196 +1,174 @@
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { MasonryFlashList } from "@shopify/flash-list";
-import { Button, Text, View } from "react-native";
+import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { faAddressCard } from "@fortawesome/free-regular-svg-icons/faAddressCard";
-import { useEffect, useRef, useState } from "react";
-import { drizzle, SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
-import { notesTable, usersTable } from "@/lib/schema";
+import { faPenToSquare } from "@fortawesome/free-regular-svg-icons/faPenToSquare";
+import { faTrashAlt } from "@fortawesome/free-regular-svg-icons/faTrashAlt";
+import { useEffect, useState } from "react";
+
+import { notesTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import { library } from "@fortawesome/fontawesome-svg-core";
-import { faBell as farBell } from "@fortawesome/free-regular-svg-icons/faBell";
-import { faBookmark as farBookmark } from "@fortawesome/free-regular-svg-icons/faBookmark";
-import { faCalendar as farCalendar } from "@fortawesome/free-regular-svg-icons/faCalendar";
-import { faCircle } from "@fortawesome/free-regular-svg-icons/faCircle";
-import { faCircleCheck as farCircleCheck } from "@fortawesome/free-regular-svg-icons/faCircleCheck";
-
-library.add(
-  faAddressCard,
-  farBell,
-  farBookmark,
-  farCalendar,
-  faCircle,
-  farCircleCheck
-);
-
-console.log("icons initialized...");
+import { FAB, IconButton, Text } from "react-native-paper";
+import { useRouter } from "expo-router";
+import { useDatabase } from "@/hooks/useDatabase";
 
 // Use proxy for communication
 // Figure migration strategy later or handcraft migrations
 // The database should be based on user login
 
-export type WorkerMessage = {
-  type: "SQL_QUERY";
-  payload?: any;
-};
+function getRandomNumberAndColor(
+  min: number,
+  max: number,
+  mode: "dark" | "light" = "light"
+): {
+  number: number;
+  color: string;
+} {
+  const lightColors = [
+    "#faafa8",
+    "#f39f76",
+    "#fff8b8",
+    "#e2f6d3",
+    "#b4ddd3",
+    "#d4e4ed",
+    "#aeccdc",
+    "#d3bfdb",
+    "#f6e2dd",
+    "#e9e3d4",
+    "#efeff1",
+  ];
+  const darkColors = [
+    "#77172e",
+    "#692b17",
+    "#7c4a03",
+    "#264d3b",
+    "#0c625d",
+    "#256377",
+    "#284255",
+    "#472e5b",
+    "#6c394f",
+    "#4b443a",
+    "#232427",
+  ];
 
-export type WorkerResponse = {
-  type: "QUERY_RESPONSE" | "ERROR" | "READY";
-  payload: {} | undefined;
-  responseId: string;
-};
+  const colors = mode === "dark" ? darkColors : lightColors;
 
-class Database {
-  public db: SqliteRemoteDatabase<Record<string, never>>;
-  private worker: Worker;
-  private callbacks: Map<string, (value: any) => void>;
+  const randomNumber = Math.floor(Math.random() * (max - min + 1)) + min;
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
-  constructor(isReadyCallback: () => void) {
-    this.db = drizzle(async (sql, params, method) => {
-      // console.log([sql, params, method]);
-      try {
-        const data: any = await this.sendMessage("SQL_QUERY", {
-          sql,
-          params,
-          method,
-        });
-        return { rows: data };
-      } catch (e: any) {
-        console.error("Error from sqlite proxy server:", e);
-        throw e;
-      }
-    });
-    this.worker = new Worker(`worker.js?sqlite3.dir=jswasm&sqlite3.logs=true`);
-    this.callbacks = new Map();
-
-    this.worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
-      const { type, payload, responseId } = event.data;
-
-      if (type === "ERROR") {
-        console.error("Database error:", payload);
-        return;
-      }
-
-      if (type === "READY") {
-        console.log("Database ready");
-        isReadyCallback();
-        return;
-      }
-
-      const callback = this.callbacks.get(responseId);
-      if (callback) {
-        callback(payload);
-        this.callbacks.delete(type);
-      }
-    };
-  }
-
-  private generateUniqueId(): string {
-    return `id-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-  }
-
-  private sendMessage<T>(
-    type: WorkerMessage["type"],
-    message?: any
-  ): Promise<T> {
-    const id = this.generateUniqueId();
-    return new Promise((resolve) => {
-      this.callbacks.set(id, resolve);
-      const payload = {
-        sql: message.sql,
-        bind: message.params,
-        ...(message.method !== "run" && { returnValue: "resultRows" }),
-      };
-      this.worker.postMessage({ responseId: id, payload, type });
-    });
-  }
-}
-
-function useDatabase() {
-  const [ready, setReady] = useState(false);
-  const [db, setDb] = useState<SqliteRemoteDatabase<
-    Record<string, never>
-  > | null>(null);
-
-  useEffect(() => {
-    const $globalThis = globalThis as any;
-    if (!$globalThis.dbInstance) {
-      $globalThis.dbInstance = new Database(() => {
-        setReady(true);
-      });
-      setDb($globalThis.dbInstance.db);
-    } else {
-      setDb($globalThis.dbInstance.db);
-    }
-  }, []);
-
-  return ready ? db : null;
+  return {
+    number: randomNumber,
+    color: randomColor,
+  };
 }
 
 export default function HomeScreen() {
+  const router = useRouter();
   const insets = useSafeAreaInsets();
   const db = useDatabase();
-  const [users, setUsers] = useState<any[]>([]);
+  const [notes, setNotes] = useState<any[]>([]);
 
-  console.log(users, " users");
+  console.log(notes, " notes");
 
-  async function getUsers() {
+  async function getnotes() {
     db!
       .select()
-      .from(usersTable)
-      // .where(eq(usersTable.email, "john@example.com"))
+      .from(notesTable)
+      // .where(eq(notesTable.email, "john@example.com"))
       .then((data) => {
-        setUsers(data);
+        setNotes(data);
       });
   }
 
   useEffect(() => {
     if (db) {
-      getUsers();
+      getnotes();
     }
   }, [db]);
 
-  // create db instance
-
   return (
     <View style={{ flex: 1, paddingTop: insets.top + 16, gap: 4 }}>
-      <Button
-        title="create user"
+      <FAB
+        icon="plus"
+        style={{
+          position: "absolute",
+          margin: 16,
+          right: 0,
+          bottom: 0,
+          zIndex: 1,
+        }}
         onPress={async () => {
-          await db?.insert(usersTable).values({
-            name: `John Doe ${new Date().getTime()}`,
-            email: `john-${new Date().getTime()}@example.com`,
-          });
-          getUsers();
+          router.push("/choose-type");
+          // await db?.insert(notesTable).values({
+          //   name: `John Doe ${new Date().getTime()}`,
+          //   email: `john-${new Date().getTime()}@example.com`,
+          // });
+          // getnotes();
         }}
       />
       <MasonryFlashList
-        data={users}
+        contentContainerStyle={{ paddingHorizontal: 4 }}
+        data={notes}
         numColumns={2}
         renderItem={({ item, columnIndex }) => {
+          const { color, number } = getRandomNumberAndColor(80, 200, "dark");
           return (
-            <View style={{ padding: 8, gap: 1 }}>
-              <Text>{item.name}</Text>
-              <Button
-                title="Edit"
-                onPress={async () => {
-                  await db
-                    ?.update(usersTable)
-                    .set({ name: `${item.name}__edited` })
-                    .where(eq(usersTable.id, item.id));
-                  getUsers();
+            <Pressable
+              onPress={() => {
+                if (item.type === "Inventory") {
+                  router.push({
+                    pathname: "/inventory/[id]",
+                    params: { id: item.id },
+                  });
+                }
+              }}
+            >
+              <View
+                style={{
+                  padding: 8,
+                  gap: 1,
+                  backgroundColor: color,
+                  height: number,
+                  borderRadius: 8,
+                  margin: 4,
                 }}
-              />
-              <Button
-                title="Delete"
-                onPress={async () => {
-                  await db
-                    ?.delete(usersTable)
-                    .where(eq(usersTable.id, item.id));
-                  getUsers();
-                }}
-              />
-            </View>
+              >
+                <View style={{ flexDirection: "row" }}>
+                  <IconButton
+                    icon={({ color, size }) => {
+                      return (
+                        <FontAwesomeIcon
+                          icon={faPenToSquare}
+                          color={color}
+                          size={size}
+                        />
+                      );
+                    }}
+                    size={20}
+                    onPress={async () => {}}
+                  />
+                  <IconButton
+                    icon={({ color, size }) => {
+                      return (
+                        <FontAwesomeIcon
+                          icon={faTrashAlt}
+                          color={color}
+                          size={size}
+                        />
+                      );
+                    }}
+                    size={20}
+                    onPress={async () => {
+                      await db
+                        ?.delete(notesTable)
+                        .where(eq(notesTable.id, item.id));
+                      getnotes();
+                    }}
+                  />
+                </View>
+                <Text>{item.name}</Text>
+              </View>
+            </Pressable>
           );
         }}
         estimatedItemSize={200}

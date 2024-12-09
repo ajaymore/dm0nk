@@ -3,13 +3,8 @@ import { notesTable } from "@/lib/schema";
 import { faChevronLeft } from "@fortawesome/free-solid-svg-icons/faChevronLeft";
 import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
 import { eq } from "drizzle-orm";
-import {
-  Stack,
-  useGlobalSearchParams,
-  useLocalSearchParams,
-  useRouter,
-} from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, View, TextInput as VanillaTextInput } from "react-native";
 import {
   Button,
@@ -90,11 +85,12 @@ function ItemView({
   }
 
   useEffect(() => {
+    if (noteText === item.name) return;
     const handler = setTimeout(() => {
       setNotesMapAtom((prev) => {
         return new Map(prev).set(item.id, { ...item, name: noteText });
       });
-    }, 500);
+    }, 2000);
 
     // Cleanup timeout if noteText changes before 500ms
     return () => clearTimeout(handler);
@@ -213,8 +209,6 @@ const notesListDisplayAtom = atom((get) => {
   );
 });
 
-// const notesTextAtom = atom(new Map<string, string>());
-
 export default function Inventory() {
   const setNotesMapAtom = useSetAtom(notesMapAtom);
   const items = useAtomValue(notesListDisplayAtom);
@@ -223,37 +217,6 @@ export default function Inventory() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [title, setTitle] = useState("");
-  // const [note, setNote] = useState<any>();
-  // const setNoteAtom = useSetAtom(notesTextAtom);
-  // take title -> move title to top and bring in rest of the UI
-  // { id: "1", name: "Apple", in_stock: true },
-  // { id: "2", name: "Banana", in_stock: false },
-  // { id: "3", name: "Carrot", in_stock: true },
-  // { id: "4", name: "Dill", in_stock: false },
-  // { id: "5", name: "Eggplant", in_stock: true },
-  // { id: "6", name: "Fennel", in_stock: false },
-  // { id: "7", name: "Ginger", in_stock: true },
-  // { id: "8", name: "Honey", in_stock: false },
-  // { id: "9", name: "Iceberg", in_stock: true },
-  // { id: "10", name: "Jalapeno", in_stock: false },
-  // { id: "11", name: "Kale", in_stock: true },
-  // { id: "12", name: "Lemon", in_stock: false },
-  // { id: "13", name: "Mango", in_stock: true },
-  // { id: "14", name: "Nectarine", in_stock: false },
-  // { id: "15", name: "Orange", in_stock: true },
-  // { id: "16", name: "Papaya", in_stock: false },
-  // { id: "17", name: "Quince", in_stock: true },
-  // { id: "18", name: "Radish", in_stock: false },
-  // { id: "19", name: "Spinach", in_stock: true },
-  // { id: "20", name: "Tomato", in_stock: false },
-  // { id: "21", name: "Ugli", in_stock: true },
-  // { id: "22", name: "Vanilla", in_stock: false },
-  // { id: "23", name: "Watermelon", in_stock: true },
-  // { id: "24", name: "Xylocarp", in_stock: false },
-  // { id: "25", name: "Yam", in_stock: true },
-  // const [items, setItems] = useState<
-  //   { id: string; name: string; in_stock: boolean }[]
-  // >([]);
   items.sort((a, b) => {
     if (!a.name) return 1;
     if (!b.name) return -1;
@@ -264,14 +227,21 @@ export default function Inventory() {
   );
   const in_stock = filtered.filter((item) => item.in_stock);
   const out_of_stock = filtered.filter((item) => !item.in_stock);
-  const renderData = [
-    `Not in stock (${out_of_stock.length})`,
-    ...out_of_stock,
-    `ADD_NOT_IN_STOCK`,
-    `In stock (${in_stock.length})`,
-    ...in_stock,
-    `ADD_IN_STOCK`,
-  ];
+  const renderData = search
+    ? [
+        `Not in stock (${out_of_stock.length})`,
+        ...out_of_stock,
+        `In stock (${in_stock.length})`,
+        ...in_stock,
+      ]
+    : [
+        `Not in stock (${out_of_stock.length})`,
+        ...out_of_stock,
+        `ADD_NOT_IN_STOCK`,
+        `In stock (${in_stock.length})`,
+        ...in_stock,
+        `ADD_IN_STOCK`,
+      ];
 
   async function createInventory() {
     try {
@@ -289,19 +259,6 @@ export default function Inventory() {
     }
   }
 
-  // const syncNote = useCallback(async () => {
-  //   if (!note) return;
-  //   // use atoms, do not trigger re-render on note update
-  //   await db
-  //     ?.update(notesTable)
-  //     .set({
-  //       title,
-  //       data: JSON.stringify(note.data),
-  //       listDisplayView: JSON.stringify({}),
-  //     })
-  //     .where(eq(notesTable.id, note.id));
-  // }, [note]);
-
   useEffect(() => {
     if (!local.id || !db || local.id === "create") return;
 
@@ -311,12 +268,9 @@ export default function Inventory() {
       .limit(1)
       .then((result) => {
         if (result) {
-          // set only notesMapAtom rest should just work
           const [note] = result;
-          console.log("original note", note);
           if (note && note.data) {
             const list = JSON.parse(note.data)?.items || [];
-            // const list = [];
             const mapValue = list.reduce((acc: any, item: any) => {
               return acc.size === 0
                 ? new Map([[item.id, item]])
@@ -324,31 +278,20 @@ export default function Inventory() {
             }, new Map<string, string>());
             setNotesMapAtom(mapValue);
           }
-          // setNote(note);
-          // setNoteAtom(
-          //   items.reduce((acc, item) => {
-          //     acc.set(item.id, item.name);
-          //     return acc;
-          //   }, new Map<string, string>())
-          // );
-          // setTitle(note.title);
         }
       });
   }, [local.id, db]);
 
   useEffect(() => {
     if (!local.id || !db || local.id === "create") return;
-    console.log("setting up subscription");
     const store = getDefaultStore();
     const unsub = store.sub(notesMapAtom, async () => {
       const updates = Array.from(store.get(notesMapAtom).values());
-      console.log("updates are", updates);
       const [prev] = await db
         .select()
         .from(notesTable)
         .where(eq(notesTable.id, local.id as string))
         .limit(1);
-      console.log("prev is", prev);
       const in_stock = updates.filter((item) => item.in_stock);
       const out_of_stock = updates.filter((item) => !item.in_stock);
       await db
@@ -358,7 +301,16 @@ export default function Inventory() {
             ...JSON.parse(prev.data as any),
             items: updates,
           }),
-          listDisplayView: `Items in stock (${in_stock.length})\nItems out of stock (${out_of_stock.length})`,
+          listDisplayView: `Items in stock (${in_stock.length})\n${in_stock
+            .slice(0, 3)
+            .map((item) => item.name)
+            .join(", ")}\n\nItems out of stock (${
+            out_of_stock.length
+          })\n${out_of_stock
+            .slice(0, 3)
+            .map((item) => item.name)
+            .join(", ")}
+          `,
         })
         .where(eq(notesTable.id, local.id as string));
     });
@@ -460,16 +412,12 @@ export default function Inventory() {
           } else if (typeof item === "string" && item === "ADD_IN_STOCK") {
             return <AddItemView inStock={true} />;
           } else if (typeof item === "string" && item !== "") {
-            // Rendering header
             return (
               <Text style={{ fontSize: 18, fontWeight: "600", marginTop: 8 }}>
                 {item}
               </Text>
             );
           }
-          // clicking check uncheck updates note here and syncNote
-          // clicking delete removes item from list and syncNote
-          // editing text
           return <ItemView item={item} />;
         }}
         getItemType={(item) => {
@@ -480,6 +428,9 @@ export default function Inventory() {
     </View>
   );
 }
+
+// Disable add when search is on
+// Sort first when data fetched later do not
 
 // add item, remove item, edit item, check, uncheck
 // search

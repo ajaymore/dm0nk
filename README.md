@@ -87,4 +87,8 @@ docker run -d --net reverse-proxy -p 3000:3000 \
 ```
 Inventory Item
 add -> choose type in modal -> Open Editor -> Ask for title first -> Show title on header -> click title to edit -> add, remove, edit, update items -> show count in_stock & out_stock on Masonry Display
+
+Each time a row is updated in the database push out userid, rowid, datahash, timestamp
+every device on connect gets all sync information
+every device receives an event when new items are pushed
 ```

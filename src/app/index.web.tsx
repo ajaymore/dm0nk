@@ -111,7 +111,7 @@ export default function HomeScreen() {
         data={notes}
         numColumns={2}
         renderItem={({ item, columnIndex }) => {
-          const { color, number } = getRandomNumberAndColor(80, 200, "dark");
+          const { color, number } = getRandomNumberAndColor(150, 200, "dark");
           return (
             <Pressable
               onPress={() => {
@@ -133,7 +133,7 @@ export default function HomeScreen() {
                   margin: 4,
                 }}
               >
-                <View style={{ flexDirection: "row" }}>
+                {/* <View style={{ flexDirection: "row" }}>
                   <IconButton
                     icon={({ color, size }) => {
                       return (
@@ -165,7 +165,7 @@ export default function HomeScreen() {
                       getnotes();
                     }}
                   />
-                </View>
+                </View> */}
                 <Text variant="titleMedium">{item.title}</Text>
                 <Text variant="labelSmall">{item.listDisplayView}</Text>
               </View>

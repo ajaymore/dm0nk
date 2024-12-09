@@ -166,7 +166,8 @@ export default function HomeScreen() {
                     }}
                   />
                 </View>
-                <Text>{item.name}</Text>
+                <Text variant="titleMedium">{item.title}</Text>
+                <Text variant="labelSmall">{item.listDisplayView}</Text>
               </View>
             </Pressable>
           );

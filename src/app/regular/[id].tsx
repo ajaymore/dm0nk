@@ -1,7 +1,7 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useRouter } from "expo-router";
-import { atom, useAtom, useSetAtom } from "jotai";
-import { useRef } from "react";
+import { atom, getDefaultStore, useAtom, useSetAtom } from "jotai";
+import { useEffect, useRef } from "react";
 import { Platform, TextInput, useWindowDimensions, View } from "react-native";
 import { IconButton } from "react-native-paper";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -19,11 +19,11 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useDatabase } from "@/hooks/useDatabase";
 import { notesTable } from "@/lib/schema";
+import { eq } from "drizzle-orm";
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
-const contentAtom = atom("");
-const titleAtom = atom("");
+const noteAtom = atom({ title: "", data: "" });
 
 function NewRegularNote() {
   const db = useDatabase();
@@ -33,16 +33,73 @@ function NewRegularNote() {
   const refContent = useRef<TextInput>(null);
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const [note, setNote] = useAtom(contentAtom);
-  const [title, setTitle] = useAtom(titleAtom);
+  const [note, setNote] = useAtom(noteAtom);
   const keyboard = useAnimatedKeyboard();
   const dims = useWindowDimensions();
   const animatedStylesTextInput = useAnimatedStyle(() => ({
     height: dims.height - 48 * 2 - keyboard.height.value,
   }));
 
+  useEffect(() => {
+    if (!local.id || !db) return;
+    setNote({ title: "", data: "" });
+
+    db?.select()
+      .from(notesTable)
+      .where(eq(notesTable.id, local.id as string))
+      .limit(1)
+      .then((result) => {
+        if (result) {
+          const [note] = result;
+          if (note && (note.data || note.title)) {
+            setNote({
+              title: note.title || "",
+              data: note.data || "",
+            });
+          }
+        }
+      });
+
+    const store = getDefaultStore();
+    const unsub = store.sub(noteAtom, async () => {
+      const updates = store.get(noteAtom);
+      const [prev] = await db
+        .select()
+        .from(notesTable)
+        .where(eq(notesTable.id, local.id as string))
+        .limit(1);
+
+      if (!updates.title && !updates.data) return;
+
+      if (!prev) {
+        await db?.insert(notesTable).values({
+          id: local.id as string,
+          data: note.data,
+          listDisplayView: note.data,
+          title: note.title,
+          type: "Default",
+        });
+      } else {
+        await db
+          ?.update(notesTable)
+          .set({
+            data: updates.data || "",
+            listDisplayView: updates.data.slice(0, 100),
+            title: updates.title || "",
+          })
+          .where(eq(notesTable.id, local.id as string));
+      }
+    });
+    return unsub;
+  }, [local.id, db]);
+
   return (
     <View style={{ paddingTop: insets.top, flex: 1 }}>
+      <Stack.Screen
+        options={{
+          headerShown: false,
+        }}
+      />
       <View
         style={{
           flexDirection: "row",
@@ -59,25 +116,7 @@ function NewRegularNote() {
           }}
           size={24}
           onPress={async () => {
-            try {
-              if (!note) {
-                router.replace("/");
-                return;
-              }
-              await db?.insert(notesTable).values({
-                id: local.id as string,
-                data: note,
-                listDisplayView: JSON.stringify({}),
-                title: note,
-                type: "Default",
-              });
-              router.replace("/");
-            } catch (e) {
-              console.error(e);
-            }
-            // populate from db
-            // update db
-            // skip, keep empty don't touch db if not title or content
+            router.replace("/");
           }}
         />
         <View style={{ flexDirection: "row" }}>
@@ -101,12 +140,18 @@ function NewRegularNote() {
           />
         </View>
       </View>
-      <View style={{ height: 48, justifyContent: "center" }}>
+      <View
+        style={{
+          height: 48,
+          justifyContent: "center",
+        }}
+      >
         <TextInput
+          autoFocus
           ref={refTitle}
           placeholder="Title"
-          value={title}
-          onChangeText={setTitle}
+          value={note.title}
+          onChangeText={(text) => setNote((prev) => ({ ...prev, title: text }))}
           placeholderTextColor={"rgba(255,255,255,0.7)"}
           style={{
             fontSize: 24,
@@ -117,7 +162,6 @@ function NewRegularNote() {
         />
       </View>
       <AnimatedTextInput
-        autoFocus
         ref={refContent}
         editable={true}
         style={[
@@ -129,8 +173,8 @@ function NewRegularNote() {
           },
           animatedStylesTextInput,
         ]}
-        value={note}
-        onChangeText={setNote}
+        value={note.data}
+        onChangeText={(text) => setNote((prev) => ({ ...prev, data: text }))}
         autoCapitalize={"none"}
         autoComplete="off"
         autoCorrect={false}

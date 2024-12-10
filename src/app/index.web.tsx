@@ -62,6 +62,23 @@ function getRandomNumberAndColor(
   };
 }
 
+function DisplayNoteContent({ content }: { content: string }) {
+  let height = (content.split(" ").length / 3) * 20;
+  let contentModified = content;
+
+  console.log(height, " height");
+  if (height > 180) {
+    height = 180;
+    contentModified = content.split(" ").slice(0, 18).concat("...").join(" ");
+  }
+
+  return (
+    <View style={{}}>
+      <Text variant="bodyMedium">{contentModified}</Text>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -120,54 +137,27 @@ export default function HomeScreen() {
                     pathname: "/inventory/[id]",
                     params: { id: item.id },
                   });
+                } else if (item.type === "Default") {
+                  router.push({
+                    pathname: "/regular/[id]",
+                    params: { id: item.id },
+                  });
                 }
               }}
             >
               <View
                 style={{
-                  padding: 8,
+                  padding: 16,
                   gap: 1,
                   backgroundColor: color,
-                  height: number,
                   borderRadius: 8,
                   margin: 4,
                 }}
               >
-                {/* <View style={{ flexDirection: "row" }}>
-                  <IconButton
-                    icon={({ color, size }) => {
-                      return (
-                        <FontAwesomeIcon
-                          icon={faPenToSquare}
-                          color={color}
-                          size={size}
-                        />
-                      );
-                    }}
-                    size={20}
-                    onPress={async () => {}}
-                  />
-                  <IconButton
-                    icon={({ color, size }) => {
-                      return (
-                        <FontAwesomeIcon
-                          icon={faTrashAlt}
-                          color={color}
-                          size={size}
-                        />
-                      );
-                    }}
-                    size={20}
-                    onPress={async () => {
-                      await db
-                        ?.delete(notesTable)
-                        .where(eq(notesTable.id, item.id));
-                      getnotes();
-                    }}
-                  />
-                </View> */}
-                <Text variant="titleMedium">{item.title}</Text>
-                <Text variant="labelSmall">{item.listDisplayView}</Text>
+                <Text variant="titleMedium" style={{ paddingBottom: 8 }}>
+                  {item.title}
+                </Text>
+                <DisplayNoteContent content={item.listDisplayView} />
               </View>
             </Pressable>
           );

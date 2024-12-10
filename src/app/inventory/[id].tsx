@@ -35,34 +35,54 @@ import {
 } from "jotai";
 import { faXmarkCircle } from "@fortawesome/free-solid-svg-icons/faXmarkCircle";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
+import { faAdd } from "@fortawesome/free-solid-svg-icons";
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
+const focusAtom = atom<string | null>(null);
+
 function AddItemView({ inStock }: { inStock: boolean }) {
   const setNotesMapAtom = useSetAtom(notesMapAtom);
+  const theme = useTheme();
+  const setFocusAtom = useSetAtom(focusAtom);
+
   return (
-    <View>
-      <Button
-        onPress={() => {
-          setNotesMapAtom((prev) => {
-            const id = uuidv4();
-            return new Map([
-              ...prev,
-              [
+    <Pressable
+      style={{ flexDirection: "row", alignItems: "center" }}
+      onPress={() => {
+        const id = uuidv4();
+        setNotesMapAtom((prev) => {
+          return new Map([
+            ...prev,
+            [
+              id,
+              {
                 id,
-                {
-                  id,
-                  name: "",
-                  in_stock: inStock,
-                },
-              ],
-            ]);
-          });
+                name: "",
+                in_stock: inStock,
+              },
+            ],
+          ]);
+        });
+        setFocusAtom(id);
+      }}
+    >
+      <View
+        style={{
+          width: 48,
+          height: 48,
+          justifyContent: "center",
+          alignItems: "center",
         }}
       >
-        + Add item
-      </Button>
-    </View>
+        <FontAwesomeIcon
+          icon={faAdd}
+          color={theme.colors.onSurface}
+          size={18}
+        />
+      </View>
+      <Text style={{ paddingHorizontal: 16, fontSize: 16 }}>Add Item</Text>
+    </Pressable>
   );
 }
 
@@ -71,11 +91,12 @@ function ItemView({
 }: {
   item: { id: string; name: string; in_stock: boolean };
 }) {
+  const ref = useRef<VanillaTextInput>(null);
+  const [focusId, setFocusId] = useAtom(focusAtom);
   const setNotesMapAtom = useSetAtom(notesMapAtom);
   const [noteText, setNoteText] = useState(item.name);
   const [hasFocus, setHasFocus] = useState(false);
   const theme = useTheme();
-  const ref = useRef<any>(null);
   function removeItem() {
     setNotesMapAtom((prev) => {
       const next = new Map(prev);
@@ -90,11 +111,20 @@ function ItemView({
       setNotesMapAtom((prev) => {
         return new Map(prev).set(item.id, { ...item, name: noteText });
       });
-    }, 2000);
+    }, 1000);
 
     // Cleanup timeout if noteText changes before 500ms
     return () => clearTimeout(handler);
   }, [noteText, setNotesMapAtom, item.id]);
+
+  useEffect(() => {
+    if (focusId === item.id) {
+      setTimeout(() => {
+        ref.current?.focus();
+        setFocusId(null);
+      }, 100);
+    }
+  }, [focusId, item.id]);
 
   return (
     <View
@@ -159,9 +189,10 @@ function ItemView({
         }}
       >
         <VanillaTextInput
+          ref={ref}
           onFocus={() => setHasFocus(true)}
           onBlur={() => {
-            ref.current = setTimeout(() => {
+            setTimeout(() => {
               setHasFocus(false);
             }, 100);
           }}
@@ -217,11 +248,6 @@ export default function Inventory() {
   const router = useRouter();
   const [search, setSearch] = useState("");
   const [title, setTitle] = useState("");
-  items.sort((a, b) => {
-    if (!a.name) return 1;
-    if (!b.name) return -1;
-    return a.name.localeCompare(b.name);
-  });
   const filtered = items.filter((item) =>
     item.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -261,7 +287,7 @@ export default function Inventory() {
 
   useEffect(() => {
     if (!local.id || !db || local.id === "create") return;
-
+    setNotesMapAtom(new Map()); // reset first whenever id changes
     db?.select()
       .from(notesTable)
       .where(eq(notesTable.id, local.id as string))
@@ -271,6 +297,11 @@ export default function Inventory() {
           const [note] = result;
           if (note && note.data) {
             const list = JSON.parse(note.data)?.items || [];
+            list.sort((a: any, b: any) => {
+              if (!a.name) return 1;
+              if (!b.name) return -1;
+              return a.name.localeCompare(b.name);
+            });
             const mapValue = list.reduce((acc: any, item: any) => {
               return acc.size === 0
                 ? new Map([[item.id, item]])
@@ -280,10 +311,7 @@ export default function Inventory() {
           }
         }
       });
-  }, [local.id, db]);
 
-  useEffect(() => {
-    if (!local.id || !db || local.id === "create") return;
     const store = getDefaultStore();
     const unsub = store.sub(notesMapAtom, async () => {
       const updates = Array.from(store.get(notesMapAtom).values());
@@ -316,6 +344,41 @@ export default function Inventory() {
     });
     return unsub;
   }, [local.id, db]);
+
+  // useEffect(() => {
+  //   if (!local.id || !db || local.id === "create") return;
+  //   const store = getDefaultStore();
+  //   const unsub = store.sub(notesMapAtom, async () => {
+  //     const updates = Array.from(store.get(notesMapAtom).values());
+  //     const [prev] = await db
+  //       .select()
+  //       .from(notesTable)
+  //       .where(eq(notesTable.id, local.id as string))
+  //       .limit(1);
+  //     const in_stock = updates.filter((item) => item.in_stock);
+  //     const out_of_stock = updates.filter((item) => !item.in_stock);
+  //     await db
+  //       ?.update(notesTable)
+  //       .set({
+  //         data: JSON.stringify({
+  //           ...JSON.parse(prev.data as any),
+  //           items: updates,
+  //         }),
+  //         listDisplayView: `Items in stock (${in_stock.length})\n${in_stock
+  //           .slice(0, 3)
+  //           .map((item) => item.name)
+  //           .join(", ")}\n\nItems out of stock (${
+  //           out_of_stock.length
+  //         })\n${out_of_stock
+  //           .slice(0, 3)
+  //           .map((item) => item.name)
+  //           .join(", ")}
+  //         `,
+  //       })
+  //       .where(eq(notesTable.id, local.id as string));
+  //   });
+  //   return unsub;
+  // }, [local.id, db]);
 
   return (
     <View style={{ flex: 1 }}>

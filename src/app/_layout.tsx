@@ -25,6 +25,7 @@ import {
   PaperProvider,
 } from "react-native-paper";
 import { AppState, AppStateStatus, Platform } from "react-native";
+import { SheetProvider } from "react-native-actions-sheet";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -89,22 +90,24 @@ export default function RootLayout() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider value={paperTheme as any}>
-        <PaperProvider theme={MD3DarkTheme}>
-          <Stack>
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="choose-type"
-              options={{
-                presentation: "modal",
-              }}
-            />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </PaperProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <SheetProvider>
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider value={paperTheme as any}>
+          <PaperProvider theme={MD3DarkTheme}>
+            <Stack>
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="choose-type"
+                options={{
+                  presentation: "modal",
+                }}
+              />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="auto" />
+          </PaperProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
+    </SheetProvider>
   );
 }

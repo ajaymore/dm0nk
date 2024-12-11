@@ -8,9 +8,27 @@ import { useEffect, useState } from "react";
 
 import { notesTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import { FAB, IconButton, Text } from "react-native-paper";
+import { FAB, IconButton, Menu, Text } from "react-native-paper";
 import { useRouter } from "expo-router";
 import { useDatabase } from "@/hooks/useDatabase";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import ActionSheet, {
+  registerSheet,
+  ScrollView,
+  SheetDefinition,
+  SheetManager,
+  SheetProps,
+} from "react-native-actions-sheet";
+import {
+  faCopy,
+  faShare,
+  faThumbTack,
+  faTrash,
+} from "@fortawesome/free-solid-svg-icons";
 
 // Use proxy for communication
 // Figure migration strategy later or handcraft migrations
@@ -66,7 +84,6 @@ function DisplayNoteContent({ content }: { content: string }) {
   let height = (content.split(" ").length / 3) * 20;
   let contentModified = content;
 
-  console.log(height, " height");
   if (height > 180) {
     height = 180;
     contentModified = content.split(" ").slice(0, 18).concat("...").join(" ");
@@ -84,8 +101,6 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const db = useDatabase();
   const [notes, setNotes] = useState<any[]>([]);
-
-  console.log(notes, " notes");
 
   async function getnotes() {
     db!
@@ -116,11 +131,6 @@ export default function HomeScreen() {
         }}
         onPress={async () => {
           router.push("/choose-type");
-          // await db?.insert(notesTable).values({
-          //   name: `John Doe ${new Date().getTime()}`,
-          //   email: `john-${new Date().getTime()}@example.com`,
-          // });
-          // getnotes();
         }}
       />
       <MasonryFlashList
@@ -128,42 +138,175 @@ export default function HomeScreen() {
         data={notes}
         numColumns={2}
         renderItem={({ item, columnIndex }) => {
-          const { color, number } = getRandomNumberAndColor(150, 200, "dark");
-          return (
-            <Pressable
-              onPress={() => {
-                if (item.type === "Inventory") {
-                  router.push({
-                    pathname: "/inventory/[id]",
-                    params: { id: item.id },
-                  });
-                } else if (item.type === "Default") {
-                  router.push({
-                    pathname: "/regular/[id]",
-                    params: { id: item.id },
-                  });
-                }
-              }}
-            >
-              <View
-                style={{
-                  padding: 16,
-                  gap: 1,
-                  backgroundColor: color,
-                  borderRadius: 8,
-                  margin: 4,
-                }}
-              >
-                <Text variant="titleMedium" style={{ paddingBottom: 8 }}>
-                  {item.title}
-                </Text>
-                <DisplayNoteContent content={item.listDisplayView} />
-              </View>
-            </Pressable>
-          );
+          return <ListItem item={item} columnIndex={columnIndex} />;
         }}
         estimatedItemSize={200}
       />
+      {/* <BottomActionSheet sheetId="actions-sheet" /> */}
     </View>
+  );
+}
+
+function ListItem({ item, columnIndex }: { item: any; columnIndex: number }) {
+  const router = useRouter();
+  const { color, number } = getRandomNumberAndColor(150, 200, "dark");
+  const borderOpacity = useSharedValue(0);
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      borderColor: "#d4e4ed",
+      borderWidth: withTiming(borderOpacity.value * 3, { duration: 200 }),
+    };
+  });
+
+  return (
+    <Pressable
+      onPressIn={() => {
+        borderOpacity.value = 1;
+      }}
+      onPressOut={() => {
+        borderOpacity.value = 0;
+      }}
+      onLongPress={() => {
+        SheetManager.show("actions-sheet", {
+          payload: { id: "Hello World" },
+        });
+      }}
+      onPress={() => {
+        if (item.type === "Inventory") {
+          router.push({
+            pathname: "/inventory/[id]",
+            params: { id: item.id },
+          });
+        } else if (item.type === "Default") {
+          router.push({
+            pathname: "/regular/[id]",
+            params: { id: item.id },
+          });
+        }
+      }}
+    >
+      <Animated.View
+        style={[
+          {
+            padding: 16,
+            gap: 1,
+            backgroundColor: color,
+            borderRadius: 8,
+            margin: 4,
+          },
+          animatedStyle,
+        ]}
+      >
+        <Text variant="titleMedium" style={{ paddingBottom: 8 }}>
+          {item.title}
+        </Text>
+        <DisplayNoteContent content={item.listDisplayView} />
+      </Animated.View>
+    </Pressable>
+  );
+}
+
+declare module "react-native-actions-sheet" {
+  interface Sheets {
+    "actions-sheet": SheetDefinition<{
+      payload: {
+        id: string;
+      };
+    }>;
+  }
+}
+
+registerSheet("actions-sheet", BottomActionSheet);
+
+function BottomActionSheet(props: SheetProps<"actions-sheet">) {
+  console.log("props", props);
+  return (
+    <ActionSheet id={props.sheetId} gestureEnabled>
+      <View style={{ flex: 1 }}>
+        <Menu.Item
+          style={{ maxWidth: "100%" }}
+          leadingIcon={({ color, size }) => {
+            return (
+              <FontAwesomeIcon icon={faPenToSquare} color={color} size={size} />
+            );
+          }}
+          onPress={() => {}}
+          title="Rename"
+        />
+        <Menu.Item
+          style={{ maxWidth: "100%" }}
+          leadingIcon={({ color, size }) => {
+            return <FontAwesomeIcon icon={faTrash} color={color} size={size} />;
+          }}
+          onPress={() => {}}
+          title="Delete"
+        />
+        <Menu.Item
+          style={{ maxWidth: "100%" }}
+          leadingIcon={({ color, size }) => {
+            return (
+              <FontAwesomeIcon icon={faThumbTack} color={color} size={size} />
+            );
+          }}
+          onPress={() => {}}
+          title="Pin"
+        />
+        {/* <Menu.Item
+          style={{ maxWidth: "100%" }}
+          leadingIcon="content-copy"
+          onPress={() => {}}
+          title="Palette"
+          disabled
+        /> */}
+        <ScrollView horizontal>
+          {[
+            "#77172e",
+            "#692b17",
+            "#7c4a03",
+            "#264d3b",
+            "#0c625d",
+            "#256377",
+            "#284255",
+            "#472e5b",
+            "#6c394f",
+            "#4b443a",
+            "#232427",
+          ].map((color) => (
+            <View
+              key={color}
+              style={{
+                height: 32,
+                width: 32,
+                backgroundColor: color,
+                borderRadius: 32,
+                margin: 8,
+              }}
+            />
+          ))}
+        </ScrollView>
+        <Menu.Item
+          style={{ maxWidth: "100%" }}
+          leadingIcon="content-paste"
+          onPress={() => {}}
+          title="Tag"
+        />
+        <Menu.Item
+          style={{ maxWidth: "100%" }}
+          leadingIcon={({ color, size }) => {
+            return <FontAwesomeIcon icon={faShare} color={color} size={size} />;
+          }}
+          onPress={() => {}}
+          title="Share"
+        />
+        <Menu.Item
+          style={{ maxWidth: "100%" }}
+          leadingIcon={({ color, size }) => {
+            return <FontAwesomeIcon icon={faCopy} color={color} size={size} />;
+          }}
+          onPress={() => {}}
+          title="Make a copy"
+        />
+      </View>
+    </ActionSheet>
   );
 }

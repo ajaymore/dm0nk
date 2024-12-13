@@ -8,6 +8,8 @@ import m0003 from './0003_military_lucky_pierre.sql';
 import m0004 from './0004_tan_makkari.sql';
 import m0005 from './0005_quick_wolfsbane.sql';
 import m0006 from './0006_equal_wolfpack.sql';
+import m0007 from './0007_naive_whiplash.sql';
+import m0008 from './0008_deep_joshua_kane.sql';
 
   export default {
     journal,
@@ -18,7 +20,9 @@ m0002,
 m0003,
 m0004,
 m0005,
-m0006
+m0006,
+m0007,
+m0008
     }
   }
   

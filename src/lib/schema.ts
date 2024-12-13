@@ -15,6 +15,9 @@ export const notesTable = sqliteTable("notes", {
   updated_at: text("updated_at")
     .notNull()
     .default(sql`CURRENT_TIMESTAMP`),
+  is_deleted: int().default(0).notNull(),
+  bg_color: text().default("#ffffff").notNull(),
+  pinned: int().default(0).notNull(),
 });
 
 export const usersTable = sqliteTable("users", {

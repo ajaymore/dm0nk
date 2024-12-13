@@ -4,10 +4,10 @@ import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { faPenToSquare } from "@fortawesome/free-regular-svg-icons/faPenToSquare";
 import { faTrashAlt } from "@fortawesome/free-regular-svg-icons/faTrashAlt";
-import { useEffect, useState } from "react";
-
+import { useCallback, useEffect, useState } from "react";
+import { v4 as uuidV4 } from "uuid";
 import { notesTable } from "@/lib/schema";
-import { eq } from "drizzle-orm";
+import { eq, InferSelectModel } from "drizzle-orm";
 import { FAB, IconButton, Menu, Text } from "react-native-paper";
 import { useRouter } from "expo-router";
 import { useDatabase } from "@/hooks/useDatabase";
@@ -24,15 +24,16 @@ import ActionSheet, {
   SheetProps,
 } from "react-native-actions-sheet";
 import {
+  faCheck,
   faCopy,
   faShare,
   faThumbTack,
   faTrash,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
-
-// Use proxy for communication
-// Figure migration strategy later or handcraft migrations
-// The database should be based on user login
+import { atom, useAtom, useSetAtom } from "jotai";
+import { useQuery } from "@tanstack/react-query";
+import * as Sharing from "expo-sharing";
 
 function getRandomNumberAndColor(
   min: number,
@@ -96,17 +97,19 @@ function DisplayNoteContent({ content }: { content: string }) {
   );
 }
 
+const notesAtom = atom<InferSelectModel<typeof notesTable>[]>([]);
+
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const db = useDatabase();
-  const [notes, setNotes] = useState<any[]>([]);
+  const [notes, setNotes] = useAtom(notesAtom);
 
   async function getnotes() {
     db!
       .select()
       .from(notesTable)
-      // .where(eq(notesTable.email, "john@example.com"))
+      .where(eq(notesTable.is_deleted, 0))
       .then((data) => {
         setNotes(data);
       });
@@ -147,9 +150,15 @@ export default function HomeScreen() {
   );
 }
 
-function ListItem({ item, columnIndex }: { item: any; columnIndex: number }) {
+function ListItem({
+  item,
+  columnIndex,
+}: {
+  item: InferSelectModel<typeof notesTable>;
+  columnIndex: number;
+}) {
   const router = useRouter();
-  const { color, number } = getRandomNumberAndColor(150, 200, "dark");
+  // const { color, number } = getRandomNumberAndColor(150, 200, "dark");
   const borderOpacity = useSharedValue(0);
   const animatedStyle = useAnimatedStyle(() => {
     return {
@@ -168,7 +177,7 @@ function ListItem({ item, columnIndex }: { item: any; columnIndex: number }) {
       }}
       onLongPress={() => {
         SheetManager.show("actions-sheet", {
-          payload: { id: "Hello World" },
+          payload: { id: item.id },
         });
       }}
       onPress={() => {
@@ -190,7 +199,7 @@ function ListItem({ item, columnIndex }: { item: any; columnIndex: number }) {
           {
             padding: 16,
             gap: 1,
-            backgroundColor: color,
+            backgroundColor: item.bg_color,
             borderRadius: 8,
             margin: 4,
           },
@@ -199,6 +208,7 @@ function ListItem({ item, columnIndex }: { item: any; columnIndex: number }) {
       >
         <Text variant="titleMedium" style={{ paddingBottom: 8 }}>
           {item.title}
+          {item.pinned ? " 📌" : ""}
         </Text>
         <DisplayNoteContent content={item.listDisplayView} />
       </Animated.View>
@@ -218,8 +228,92 @@ declare module "react-native-actions-sheet" {
 
 registerSheet("actions-sheet", BottomActionSheet);
 
+function ConfirmDelete({
+  id,
+  refreshNotes,
+}: {
+  id: string;
+  refreshNotes: any;
+}) {
+  const [confirm, setConfrim] = useState(false);
+  const db = useDatabase();
+
+  if (confirm) {
+    return (
+      <View style={{ flexDirection: "row", alignItems: "center" }}>
+        <Text>Are you sure?</Text>
+        <IconButton
+          icon={({ color, size }) => {
+            return <FontAwesomeIcon icon={faCheck} color={color} size={size} />;
+          }}
+          onPress={() => {
+            db?.update(notesTable)
+              .set({ is_deleted: 1 })
+              .where(eq(notesTable.id, id))
+              .then(async () => {
+                await refreshNotes();
+                SheetManager.hide("actions-sheet");
+              })
+              .catch((err) => {
+                console.error(err);
+              });
+          }}
+        />
+        <IconButton
+          onPress={() => {
+            setConfrim(false);
+          }}
+          icon={({ color, size }) => {
+            return <FontAwesomeIcon icon={faXmark} color={color} size={size} />;
+          }}
+        />
+      </View>
+    );
+  }
+
+  return (
+    <Menu.Item
+      style={{ maxWidth: "100%" }}
+      leadingIcon={({ color, size }) => {
+        return <FontAwesomeIcon icon={faTrash} color={color} size={size} />;
+      }}
+      onPress={() => {
+        setConfrim(true);
+      }}
+      title="Delete"
+    />
+  );
+}
+
 function BottomActionSheet(props: SheetProps<"actions-sheet">) {
+  const setNotes = useSetAtom(notesAtom);
+  const db = useDatabase();
+  const { data, refetch } = useQuery({
+    queryKey: ["note", props?.payload?.id],
+    queryFn: async () => {
+      return await db!
+        .select()
+        .from(notesTable)
+        .where(eq(notesTable.id, props?.payload?.id!))
+        .limit(1);
+    },
+    enabled: Boolean(props?.payload?.id && db),
+  });
+
+  const item = data?.[0];
+
+  const refreshNotes = useCallback(async () => {
+    await db!
+      .select()
+      .from(notesTable)
+      .where(eq(notesTable.is_deleted, 0))
+      .then((data) => {
+        setNotes(data);
+      });
+  }, [db]);
+
   console.log("props", props);
+
   return (
     <ActionSheet id={props.sheetId} gestureEnabled>
       <View style={{ flex: 1 }}>
@@ -233,14 +327,7 @@ function BottomActionSheet(props: SheetProps<"actions-sheet">) {
           onPress={() => {}}
           title="Rename"
         />
-        <Menu.Item
-          style={{ maxWidth: "100%" }}
-          leadingIcon={({ color, size }) => {
-            return <FontAwesomeIcon icon={faTrash} color={color} size={size} />;
-          }}
-          onPress={() => {}}
-          title="Delete"
-        />
+        <ConfirmDelete refreshNotes={refreshNotes} id={props?.payload?.id!} />
         <Menu.Item
           style={{ maxWidth: "100%" }}
           leadingIcon={({ color, size }) => {
@@ -248,17 +335,23 @@ function BottomActionSheet(props: SheetProps<"actions-sheet">) {
               <FontAwesomeIcon icon={faThumbTack} color={color} size={size} />
             );
           }}
-          onPress={() => {}}
-          title="Pin"
+          onPress={async () => {
+            const item = await db
+              ?.select()
+              .from(notesTable)
+              .where(eq(notesTable.id, props?.payload?.id!))
+              .limit(1);
+            db?.update(notesTable)
+              .set({ pinned: item ? (item[0].pinned ? 0 : 1) : 1 })
+              .where(eq(notesTable.id, props?.payload?.id!))
+              .then(async () => {
+                refetch();
+                await refreshNotes();
+              });
+          }}
+          title={item ? (item.pinned ? "Remove pin" : "Pin") : "Pin"}
         />
-        {/* <Menu.Item
-          style={{ maxWidth: "100%" }}
-          leadingIcon="content-copy"
-          onPress={() => {}}
-          title="Palette"
-          disabled
-        /> */}
-        <ScrollView horizontal>
+        <ScrollView horizontal contentContainerStyle={{ paddingVertical: 8 }}>
           {[
             "#77172e",
             "#692b17",
@@ -272,7 +365,15 @@ function BottomActionSheet(props: SheetProps<"actions-sheet">) {
             "#4b443a",
             "#232427",
           ].map((color) => (
-            <View
+            <Pressable
+              onPress={() => {
+                db?.update(notesTable)
+                  .set({ bg_color: color })
+                  .where(eq(notesTable.id, props?.payload?.id!))
+                  .then(async () => {
+                    await refreshNotes();
+                  });
+              }}
               key={color}
               style={{
                 height: 32,
@@ -295,7 +396,16 @@ function BottomActionSheet(props: SheetProps<"actions-sheet">) {
           leadingIcon={({ color, size }) => {
             return <FontAwesomeIcon icon={faShare} color={color} size={size} />;
           }}
-          onPress={() => {}}
+          onPress={() => {
+            Sharing.isAvailableAsync().then((available) => {
+              if (available) {
+                // create a base64 encoded string url
+                Sharing.shareAsync("", {
+                  dialogTitle: "Share this note",
+                });
+              }
+            });
+          }}
           title="Share"
         />
         <Menu.Item
@@ -303,7 +413,17 @@ function BottomActionSheet(props: SheetProps<"actions-sheet">) {
           leadingIcon={({ color, size }) => {
             return <FontAwesomeIcon icon={faCopy} color={color} size={size} />;
           }}
-          onPress={() => {}}
+          onPress={() => {
+            db?.insert(notesTable)
+              .values({
+                ...item,
+                id: uuidV4(),
+                title: `(Copy) ${item?.title}`,
+              })
+              .then(async () => {
+                await refreshNotes();
+              });
+          }}
           title="Make a copy"
         />
       </View>

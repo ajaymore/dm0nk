@@ -20,6 +20,7 @@ import {
 import { useColorScheme } from "@/hooks/useColorScheme";
 import {
   adaptNavigationTheme,
+  configureFonts,
   MD3DarkTheme,
   MD3LightTheme,
   PaperProvider,
@@ -39,6 +40,10 @@ function onAppStateChange(state: AppStateStatus) {
 
 const queryClient = new QueryClient();
 
+const fontConfig = {
+  fontFamily: "Inter",
+};
+
 const { LightTheme, DarkTheme } = adaptNavigationTheme({
   reactNavigationLight: NavigationDefaultTheme,
   reactNavigationDark: NavigationDarkTheme,
@@ -51,6 +56,7 @@ const CombinedDefaultTheme = {
     ...MD3LightTheme.colors,
     ...LightTheme.colors,
   },
+  fonts: configureFonts({ config: fontConfig }),
 };
 const CombinedDarkTheme = {
   ...MD3DarkTheme,
@@ -59,6 +65,12 @@ const CombinedDarkTheme = {
     ...MD3DarkTheme.colors,
     ...DarkTheme.colors,
   },
+  fonts: configureFonts({ config: fontConfig }),
+};
+
+const theme = {
+  ...MD3DarkTheme,
+  fonts: configureFonts({ config: fontConfig }),
 };
 
 export default function RootLayout() {
@@ -66,7 +78,7 @@ export default function RootLayout() {
   // const colorScheme = useColorScheme();
   const colorScheme = "dark";
   const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
+    Inter: require("../assets/fonts/Inter.ttf"),
   });
   const paperTheme =
     colorScheme === "dark" ? CombinedDarkTheme : CombinedDefaultTheme;
@@ -90,10 +102,10 @@ export default function RootLayout() {
   }
 
   return (
-    <SheetProvider>
-      <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={queryClient}>
+      <SheetProvider>
         <ThemeProvider value={paperTheme as any}>
-          <PaperProvider theme={MD3DarkTheme}>
+          <PaperProvider theme={theme}>
             <Stack>
               <Stack.Screen name="index" options={{ headerShown: false }} />
               <Stack.Screen
@@ -107,7 +119,7 @@ export default function RootLayout() {
             <StatusBar style="auto" />
           </PaperProvider>
         </ThemeProvider>
-      </QueryClientProvider>
-    </SheetProvider>
+      </SheetProvider>
+    </QueryClientProvider>
   );
 }

@@ -58,6 +58,20 @@ var journal_default = {
       when: 1733487778313,
       tag: "0006_equal_wolfpack",
       breakpoints: true
+    },
+    {
+      idx: 7,
+      version: "6",
+      when: 1734087279516,
+      tag: "0007_naive_whiplash",
+      breakpoints: true
+    },
+    {
+      idx: 8,
+      version: "6",
+      when: 1734088482854,
+      tag: "0008_deep_joshua_kane",
+      breakpoints: true
     }
   ]
 };
@@ -83,6 +97,12 @@ var quick_wolfsbane_default = 'PRAGMA foreign_keys=OFF;--> statement-breakpoint\
 // src/lib/drizzle/0006_equal_wolfpack.sql
 var equal_wolfpack_default = "ALTER TABLE `notes` DROP COLUMN `rand`;";
 
+// src/lib/drizzle/0007_naive_whiplash.sql
+var naive_whiplash_default = "ALTER TABLE `notes` ADD `is_deleted` integer DEFAULT 0 NOT NULL;--> statement-breakpoint\nALTER TABLE `notes` ADD `bg_color` text DEFAULT '#ffffff' NOT NULL;";
+
+// src/lib/drizzle/0008_deep_joshua_kane.sql
+var deep_joshua_kane_default = "ALTER TABLE `notes` ADD `pinned` integer DEFAULT 0 NOT NULL;";
+
 // src/lib/drizzle/migrations.js
 var migrations_default = {
   journal: journal_default,
@@ -93,7 +113,9 @@ var migrations_default = {
     m0003: military_lucky_pierre_default,
     m0004: tan_makkari_default,
     m0005: quick_wolfsbane_default,
-    m0006: equal_wolfpack_default
+    m0006: equal_wolfpack_default,
+    m0007: naive_whiplash_default,
+    m0008: deep_joshua_kane_default
   }
 };
 

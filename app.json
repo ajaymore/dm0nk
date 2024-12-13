@@ -32,7 +32,13 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-font",
+        {
+          "fonts": ["./src/assets/fonts/Inter.ttf"]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

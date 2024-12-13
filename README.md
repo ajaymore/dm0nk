@@ -91,4 +91,19 @@ add -> choose type in modal -> Open Editor -> Ask for title first -> Show title 
 Each time a row is updated in the database push out userid, rowid, datahash, timestamp
 every device on connect gets all sync information
 every device receives an event when new items are pushed
+
+Choose Palette color
+Rename
+Delete
+Pin
+Share
+Make A Copy
+Remove Tag option
 ```
+
+
+###
+1. Being able to run profiler | Understand the C++ code
+2. SQL Management Studio
+3. Visual Studio
+4. Read and understand codebases

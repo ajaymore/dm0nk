@@ -1,4 +1,5 @@
 import "react-native-get-random-values";
+import "react-native-url-polyfill/auto";
 import {
   DarkTheme as NavigationDarkTheme,
   DefaultTheme as NavigationDefaultTheme,
@@ -27,6 +28,7 @@ import {
 } from "react-native-paper";
 import { AppState, AppStateStatus, Platform } from "react-native";
 import { SheetProvider } from "react-native-actions-sheet";
+import { useAuth } from "@/hooks/useAuth";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -74,6 +76,7 @@ const theme = {
 };
 
 export default function RootLayout() {
+  const session = useAuth();
   const { success, error } = useMigrate();
   // const colorScheme = useColorScheme();
   const colorScheme = "dark";
@@ -84,7 +87,7 @@ export default function RootLayout() {
     colorScheme === "dark" ? CombinedDarkTheme : CombinedDefaultTheme;
 
   useEffect(() => {
-    if (loaded) {
+    if (loaded && session !== "unset") {
       SplashScreen.hideAsync();
     }
   }, [loaded]);
@@ -97,7 +100,7 @@ export default function RootLayout() {
     };
   }, []);
 
-  if (!loaded) {
+  if (!loaded || session == "unset") {
     return null;
   }
 
@@ -108,6 +111,10 @@ export default function RootLayout() {
           <PaperProvider theme={theme}>
             <Stack>
               <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="sign-in" options={{ headerShown: false }} />
+              <Stack.Screen name="sign-up" options={{ headerShown: false }} />
+              <Stack.Screen name="settings" options={{ title: "Settings" }} />
+              <Stack.Screen name="account" options={{ title: "Account" }} />
               <Stack.Screen
                 name="choose-type"
                 options={{

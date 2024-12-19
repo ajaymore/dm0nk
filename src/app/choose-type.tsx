@@ -41,14 +41,14 @@ function ChooseType() {
         <Text>Checklist</Text>
       </Link>
       <Link replace href="/" style={{ fontSize: 20 }}>
-        <Text>Memory Card</Text>
-        {/* choose memory deck while creating */}
-      </Link>
-      <Link replace href="/" style={{ fontSize: 20 }}>
         <Text>Trip (Expenses, Itinerary)</Text>
       </Link>
       <Link replace href="/" style={{ fontSize: 20 }}>
         <Text>Document Collection</Text>
+      </Link>
+      <Link replace href="/" style={{ fontSize: 20 }}>
+        <Text>Memory Card</Text>
+        {/* choose memory deck while creating */}
       </Link>
       {/* Preexisting note types */}
       <Link replace href="/" style={{ fontSize: 20 }}>
@@ -63,6 +63,9 @@ function ChooseType() {
       </Link>
       <Link replace href="/" style={{ fontSize: 20 }}>
         <Text>Workout</Text>
+      </Link>
+      <Link replace href="/" style={{ fontSize: 20 }}>
+        <Text>BirthDays</Text>
       </Link>
     </ScrollView>
   );

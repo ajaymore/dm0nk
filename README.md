@@ -17,6 +17,7 @@
 - Mobile | SQLite first -> change sync agent
 - Web | Pure web only
 
+
 ### Focus on OSS
 
 > dm0nk.app
@@ -99,6 +100,16 @@ Pin
 Share
 Make A Copy
 Remove Tag option
+
+
+- Use SupaBase
+
+- Just publish changesets | Atomic Operation | Create,Update,Delete - Payload, id, timestamp | Sort changesets by timestamp & apply | Make sure pending local changesets are merged before applying
+- Fetch all changesets from your last fetched changeset and reconcile
+- User Logs In > Device has a unique database. The ID is generated once the user logs in.
+- user_id & db_id are mapped using mmkv
+- There would be buckets to pull changesets. shared_changesets can be pulled from other buckets as per shared information (view, edit, delete)
+- The application should load even when internet is not available
 ```
 
 
@@ -107,3 +118,90 @@ Remove Tag option
 2. SQL Management Studio
 3. Visual Studio
 4. Read and understand codebases
+
+How to create database?
+web -> mmkv searches for uuid -> create if not available -> worker url has the uuid as db name.
+app -> mmkv searches for uuid -> create if not available -> useSQLite uses the uuid as db name
+on creation of the uuid it is synced up with the server.
+```
+user_id, db_id, table_entry
+
+I am connected, give me updates from others.
+useQuery Hook that fires everytime web has focus or app comes online.
+
+Manual sync button, Filter button, Search Button
+
+Each time something changes Create, Update, Delete -> Queue up to be synced to server
+
+
+Drizzle-Postgres
+Auth with TRPC -> Google Auth, Email with Code
+Database unique to the device and user
+Server Tables for syncing | Everything is queued up for sync to server
+sync from server
+Implement Rest of the Types | Ledger, Trip, Weblinks
+```
+
+### Postgres
+
+```
+docker exec -it postgres-server psql -U postgres
+docker exec -it postgres-server psql -U postgres -d dm0nk-dev
+docker exec -it postgres-server psql -U postgres -h 206.189.132.156 -d dm0nk
+
+\c my_database | connect to database
+\l             | List all databases
+\dn            | List all schemas
+\dt            | List all tables
+\dt drizzle.*  | List all tables
+\d tableName   | Describe a Table
+\du            | List All Roles
+\password [username] | Change User Password
+\q
+\?
+\conninfo
+\copy orders TO '/path/to/orders.csv' WITH (FORMAT csv, HEADER true);
+\! clear
+SET search_path TO drizzle;
+SET search_path TO my_schema, public;
+
+CREATE DATABASE dm0nk_dev;
+\c dm0nk_dev;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+SELECT extname FROM pg_extension WHERE extname = 'uuid-ossp';
+SELECT uuid_generate_v4();
+\df uuid_generate_v4
+DROP DATABASE dm0nk_dev;
+CREATE SCHEMA my_schema;
+SELECT * FROM my_schema.my_table;
+
+\c dm0nk_dev
+CREATE USER dm1nk_admin WITH PASSWORD 'einei9us7Cahf5luap9erooxahceePah';
+GRANT ALL PRIVILEGES ON DATABASE dm1nk TO dm1nk_admin;
+GRANT ALL PRIVILEGES ON SCHEMA public TO dm1nk_admin;
+ALTER SCHEMA public OWNER TO dm1nk_admin;
+
+## Granular
+
+GRANT CONNECT ON DATABASE dm1nk_dev TO dm1nk_admin;
+GRANT USAGE ON SCHEMA public TO dm1nk_admin;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO dm1nk_admin;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO dm1nk_admin;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO dm1nk_admin;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT ALL PRIVILEGES ON TABLES TO dm1nk_admin;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT ALL PRIVILEGES ON SEQUENCES TO dm1nk_admin;
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT ALL PRIVILEGES ON FUNCTIONS TO dm1nk_admin;
+ALTER ROLE dm1nk_admin NOSUPERUSER NOCREATEDB;
+```
+
+### JWT
+```
+# Here is how you can generate a PKCS#8 encoded RSA key pair:
+
+openssl genpkey -algorithm RSA -out keys/private_key.pem -pkeyopt rsa_keygen_bits:2048
+openssl rsa -pubout -outform PEM -in keys/private_key.pem -out keys/public_key.pem
+JSON.stringify(``).replaceAll('\\n','\n')
+```

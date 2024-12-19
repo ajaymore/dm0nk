@@ -3,13 +3,13 @@ import { MasonryFlashList } from "@shopify/flash-list";
 import { Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { faPenToSquare } from "@fortawesome/free-regular-svg-icons/faPenToSquare";
-import { faTrashAlt } from "@fortawesome/free-regular-svg-icons/faTrashAlt";
+import { v4 as uuidv4 } from "uuid";
 import { useCallback, useEffect, useState } from "react";
 import { v4 as uuidV4 } from "uuid";
 import { notesTable } from "@/lib/schema";
 import { eq, InferSelectModel } from "drizzle-orm";
 import { FAB, IconButton, Menu, Text } from "react-native-paper";
-import { useRouter } from "expo-router";
+import { Redirect, useRouter } from "expo-router";
 import { useDatabase } from "@/hooks/useDatabase";
 import Animated, {
   useAnimatedStyle,
@@ -26,14 +26,23 @@ import ActionSheet, {
 import {
   faCheck,
   faCopy,
+  faFilter,
+  faMagnifyingGlass,
   faShare,
+  faSliders,
+  faSquarePlus,
+  faSuitcaseRolling,
+  faTag,
   faThumbTack,
   faTrash,
+  faUser,
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { atom, useAtom, useSetAtom } from "jotai";
 import { useQuery } from "@tanstack/react-query";
 import * as Sharing from "expo-sharing";
+import { useSession } from "@/hooks/useAuth";
+import { Row } from "@/components/ui/common";
 
 function getRandomNumberAndColor(
   min: number,
@@ -97,9 +106,11 @@ function DisplayNoteContent({ content }: { content: string }) {
   );
 }
 
-const notesAtom = atom<InferSelectModel<typeof notesTable>[]>([]);
+type NoteType = InferSelectModel<typeof notesTable>;
+const notesAtom = atom<NoteType[]>([]);
 
 export default function HomeScreen() {
+  const session = useSession();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const db = useDatabase();
@@ -121,6 +132,21 @@ export default function HomeScreen() {
     }
   }, [db]);
 
+  if (!session) {
+    return <Redirect href="/sign-in" />;
+  }
+
+  const notesWithUtils = [
+    {
+      id: uuidV4(),
+      title: "$$$",
+      data: "Hello There",
+      type: "Utilities",
+      listDisplayView: "Hello Again",
+    } as NoteType,
+    ...notes,
+  ];
+
   return (
     <View style={{ flex: 1, paddingTop: insets.top + 16, gap: 4 }}>
       <FAB
@@ -133,12 +159,16 @@ export default function HomeScreen() {
           zIndex: 1,
         }}
         onPress={async () => {
-          router.push("/choose-type");
+          const id = uuidv4();
+          router.push({
+            pathname: "/regular/[id]",
+            params: { id },
+          });
         }}
       />
       <MasonryFlashList
         contentContainerStyle={{ paddingHorizontal: 4 }}
-        data={notes}
+        data={notesWithUtils}
         numColumns={2}
         renderItem={({ item, columnIndex }) => {
           return <ListItem item={item} columnIndex={columnIndex} />;
@@ -154,7 +184,7 @@ function ListItem({
   item,
   columnIndex,
 }: {
-  item: InferSelectModel<typeof notesTable>;
+  item: NoteType;
   columnIndex: number;
 }) {
   const router = useRouter();
@@ -166,6 +196,96 @@ function ListItem({
       borderWidth: withTiming(borderOpacity.value * 3, { duration: 200 }),
     };
   });
+
+  if (item.type == "Utilities") {
+    return (
+      <Animated.View
+        style={[
+          {
+            padding: 16,
+            gap: 1,
+            backgroundColor: "#692b17",
+            borderRadius: 8,
+            margin: 4,
+          },
+          animatedStyle,
+        ]}
+      >
+        <Row style={{ justifyContent: "center" }}>
+          <IconButton
+            size={18}
+            onPress={() => {}}
+            icon={({ color, size }) => {
+              return (
+                <FontAwesomeIcon
+                  icon={faSquarePlus}
+                  color={color}
+                  size={size}
+                />
+              );
+            }}
+          />
+          <IconButton
+            size={18}
+            onPress={() => {}}
+            icon={({ color, size }) => {
+              return <FontAwesomeIcon icon={faTag} color={color} size={size} />;
+            }}
+          />
+          <IconButton
+            size={18}
+            onPress={() => {}}
+            icon={({ color, size }) => {
+              return (
+                <FontAwesomeIcon
+                  icon={faMagnifyingGlass}
+                  color={color}
+                  size={size}
+                />
+              );
+            }}
+          />
+        </Row>
+        <Row style={{ justifyContent: "center" }}>
+          <IconButton
+            size={18}
+            onPress={() => {}}
+            icon={({ color, size }) => {
+              return (
+                <FontAwesomeIcon
+                  icon={faMagnifyingGlass}
+                  color={color}
+                  size={size}
+                />
+              );
+            }}
+          />
+          <IconButton
+            size={18}
+            onPress={() => {
+              router.push("/account");
+            }}
+            icon={({ color, size }) => {
+              return (
+                <FontAwesomeIcon icon={faUser} color={color} size={size} />
+              );
+            }}
+          />
+          <IconButton
+            size={18}
+            onPress={() => {
+              router.push("/settings");
+            }}
+            icon={({ color, size }) => {
+              return (
+                <FontAwesomeIcon icon={faSliders} color={color} size={size} />
+              );
+            }}
+          />
+        </Row>
+      </Animated.View>
+    );
+  }
 
   return (
     <Pressable

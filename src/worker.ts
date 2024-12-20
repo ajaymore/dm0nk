@@ -16,12 +16,13 @@ const error = console.error;
 
 let db: OpfsDatabase | Database;
 
-const start = (sqlite3: Sqlite3Static) => {
+const start = (sqlite3: Sqlite3Static, dbName: string) => {
   log("Running SQLite3 version", sqlite3.version.libVersion);
+  log("Database Name:", dbName);
   db =
     "opfs" in sqlite3
-      ? new sqlite3.oo1.OpfsDb("/mydb6.sqlite3")
-      : new sqlite3.oo1.DB("/mydb6.sqlite3", "ct");
+      ? new sqlite3.oo1.OpfsDb(`/${dbName}.sqlite3`)
+      : new sqlite3.oo1.DB(`/${dbName}.sqlite3`, "ct");
   log(
     "opfs" in sqlite3
       ? `OPFS is available, created persisted database at ${db.filename}`
@@ -62,6 +63,7 @@ self.onmessage = async (event) => {
   }
 };
 
+let dbName = "mydb";
 let sqlite3Js = "sqlite3.js";
 const urlParams = new URL(self.location.href).searchParams;
 if (urlParams.has("sqlite3.dir")) {
@@ -69,6 +71,9 @@ if (urlParams.has("sqlite3.dir")) {
 }
 if (urlParams.has("sqlite3.logs") && urlParams.get("sqlite3.logs") === "true") {
   log = console.log;
+}
+if (urlParams.has("sqlite3.db")) {
+  dbName = urlParams.get("sqlite3.db") as string;
 }
 
 importScripts(sqlite3Js);
@@ -81,7 +86,7 @@ self
   .then(function (sqlite3: Sqlite3Static) {
     log("Done initializing. Running demo...");
     try {
-      start(sqlite3);
+      start(sqlite3, dbName);
     } catch (e) {
       if (e instanceof Error) {
         error("Exception:", e.message);

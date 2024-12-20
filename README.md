@@ -63,16 +63,16 @@ https://github.com/sqlite/sqlite-wasm/tree/main
 ### Deployment
 
 ```
-docker build -t ghcr.io/ajaymore/dm0nk:1.0.0 .
-docker push ghcr.io/ajaymore/dm0nk:1.0.0
+docker build -t ghcr.io/ajaymore/dm0nk:1.1.0 .
+docker push ghcr.io/ajaymore/dm0nk:1.1.0
 
 
 docker run -p 3000:3000 --name dm0nk \
-  ghcr.io/ajaymore/dm0nk:1.0.0
+  ghcr.io/ajaymore/dm0nk:1.1.0
 
 ssh -i ~/.ssh/ajaymore_rsa ajay@206.189.132.156
 
-docker pull ghcr.io/ajaymore/dm0nk:1.0.0
+docker pull ghcr.io/ajaymore/dm0nk:1.1.0
 
 docker run -d --net reverse-proxy -p 3000:3000 \
  --name dm0nk \
@@ -82,7 +82,8 @@ docker run -d --net reverse-proxy -p 3000:3000 \
  -e 'LETSENCRYPT_HOST=dm0nk.app' \
  -e 'VIRTUAL_HOST=dm0nk.app' \
  -e 'VIRTUAL_PORT=3000' \
- ghcr.io/ajaymore/dm0nk:1.0.0
+ -e 'DATABASE_URL=postgresql://postgres:oen6Gaevohw7johxeiyo8Ahg1aepheel@postgres-server:5432/dm0nk?schema=public' \
+ ghcr.io/ajaymore/dm0nk:1.1.0
 ```
 
 ```

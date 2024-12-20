@@ -1,4 +1,4 @@
-import { publicProcedure, router } from "../core";
+import { authedProcedure, publicProcedure, router } from "../core";
 import { isBefore } from "date-fns";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -165,4 +165,11 @@ export const authRouter = router({
         });
       }
     }),
+  me: authedProcedure.query(async ({ ctx }) => {
+    const [row] = await db
+      .select({ name: user.displayName, email: user.email })
+      .from(user)
+      .where(eq(user.id, ctx.user?.id!));
+    return row;
+  }),
 });

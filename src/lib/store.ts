@@ -1,5 +1,6 @@
 import { atom, getDefaultStore } from "jotai";
 import { MMKV } from "react-native-mmkv";
+import { v4 as uuidV4 } from "uuid";
 
 export type Session = {
   user: { email: string; name: string; id: string };
@@ -28,6 +29,19 @@ export function getAuthSessionFromStorageAndUpdateAtom() {
 }
 
 export function logout() {
+  const $globalThis = globalThis as any;
+  delete $globalThis.dbInstance;
   storage.delete("session");
   store.set(authSessionAtom, null);
+}
+
+export function getDBName() {
+  const session = store.get(authSessionAtom) as Session;
+  const key = `DB_NAME_${session.user.id}`;
+  let dbName = storage.getString(key);
+  if (!dbName) {
+    dbName = uuidV4();
+    storage.set(key, dbName);
+  }
+  return dbName;
 }

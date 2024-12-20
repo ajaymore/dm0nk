@@ -1,5 +1,7 @@
+import { getDBName } from "@/lib/store";
 import { drizzle, SqliteRemoteDatabase } from "drizzle-orm/sqlite-proxy";
 import { useEffect, useState } from "react";
+import { useSession } from "./useAuth";
 
 export type WorkerMessage = {
   type: "SQL_QUERY";
@@ -13,6 +15,7 @@ export type WorkerResponse = {
 };
 
 class Database {
+  public ready = false;
   public db: SqliteRemoteDatabase<Record<string, never>>;
   private worker: Worker;
   private callbacks: Map<string, (value: any) => void>;
@@ -32,7 +35,11 @@ class Database {
         throw e;
       }
     });
-    this.worker = new Worker(`/worker.js?sqlite3.dir=jswasm&sqlite3.logs=true`);
+    const dbName = getDBName();
+
+    this.worker = new Worker(
+      `/worker.js?sqlite3.dir=jswasm&sqlite3.logs=true&sqlite3.db=${dbName}`
+    );
     this.callbacks = new Map();
 
     this.worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
@@ -45,6 +52,7 @@ class Database {
 
       if (type === "READY") {
         console.log("Database ready");
+        this.ready = true;
         isReadyCallback();
         return;
       }
@@ -79,25 +87,33 @@ class Database {
 }
 
 export function useDatabase() {
+  const session = useSession();
   const [ready, setReady] = useState(false);
   const [db, setDb] = useState<SqliteRemoteDatabase<
     Record<string, never>
   > | null>(null);
 
   useEffect(() => {
+    if (!session) {
+      return;
+    }
     const $globalThis = globalThis as any;
     if (!$globalThis.dbInstance) {
       $globalThis.dbInstance = new Database(() => {
         setReady(true);
       });
       setDb($globalThis.dbInstance.db);
-    } else if (!ready && $globalThis.dbInstance) {
+    } else if (
+      !ready &&
+      $globalThis.dbInstance &&
+      $globalThis.dbInstance.ready
+    ) {
       setDb($globalThis.dbInstance.db);
       setReady(true);
     } else {
       setDb($globalThis.dbInstance.db);
     }
-  }, []);
+  }, [session]);
 
   return ready ? db : null;
 }

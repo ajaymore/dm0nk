@@ -26,16 +26,11 @@ import { faSquareCheck } from "@fortawesome/free-regular-svg-icons/faSquareCheck
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons/faMagnifyingGlass";
 import { faTrashCan } from "@fortawesome/free-regular-svg-icons/faTrashCan";
 import { ConfirmationModal } from "@/components/ConfirmationModal";
-import {
-  atom,
-  getDefaultStore,
-  useAtom,
-  useAtomValue,
-  useSetAtom,
-} from "jotai";
+import { atom, useAtom, useAtomValue, useSetAtom } from "jotai";
 import { faXmarkCircle } from "@fortawesome/free-solid-svg-icons/faXmarkCircle";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { faAdd } from "@fortawesome/free-solid-svg-icons";
+import { store } from "@/lib/store";
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
@@ -312,7 +307,6 @@ export default function Inventory() {
         }
       });
 
-    const store = getDefaultStore();
     const unsub = store.sub(notesMapAtom, async () => {
       const updates = Array.from(store.get(notesMapAtom).values());
       const [prev] = await db
@@ -344,41 +338,6 @@ export default function Inventory() {
     });
     return unsub;
   }, [local.id, db]);
-
-  // useEffect(() => {
-  //   if (!local.id || !db || local.id === "create") return;
-  //   const store = getDefaultStore();
-  //   const unsub = store.sub(notesMapAtom, async () => {
-  //     const updates = Array.from(store.get(notesMapAtom).values());
-  //     const [prev] = await db
-  //       .select()
-  //       .from(notesTable)
-  //       .where(eq(notesTable.id, local.id as string))
-  //       .limit(1);
-  //     const in_stock = updates.filter((item) => item.in_stock);
-  //     const out_of_stock = updates.filter((item) => !item.in_stock);
-  //     await db
-  //       ?.update(notesTable)
-  //       .set({
-  //         data: JSON.stringify({
-  //           ...JSON.parse(prev.data as any),
-  //           items: updates,
-  //         }),
-  //         listDisplayView: `Items in stock (${in_stock.length})\n${in_stock
-  //           .slice(0, 3)
-  //           .map((item) => item.name)
-  //           .join(", ")}\n\nItems out of stock (${
-  //           out_of_stock.length
-  //         })\n${out_of_stock
-  //           .slice(0, 3)
-  //           .map((item) => item.name)
-  //           .join(", ")}
-  //         `,
-  //       })
-  //       .where(eq(notesTable.id, local.id as string));
-  //   });
-  //   return unsub;
-  // }, [local.id, db]);
 
   return (
     <View style={{ flex: 1 }}>

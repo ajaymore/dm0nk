@@ -23,8 +23,11 @@ export const apis: any = {
   "app.dm0nk": "https://dm0nk.app",
 };
 
-export const BASE_URL =
-  apis[Application.applicationId as string] || "http://localhost:8081";
+const WEB_URL =
+  process.env.NODE_ENV === "production"
+    ? "https://dm0nk.app"
+    : "http://localhost:8081";
+export const BASE_URL = apis[Application.applicationId as string] || WEB_URL;
 
 let refreshInProgress = false;
 
@@ -117,7 +120,7 @@ const refreshAndGetNewAccessToken = async (): Promise<string> => {
 
 export const getBearerToken: () => Promise<string | null> = async () => {
   const session = getSession();
-  if (!session || session.accessToken) {
+  if (!session || !session.accessToken) {
     return null;
   }
   if (isTokenExpired(session.accessToken)) {

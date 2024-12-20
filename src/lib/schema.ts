@@ -17,6 +17,10 @@ export const notesTable = sqliteTable("notes", {
     .default(sql`CURRENT_TIMESTAMP`),
   is_deleted: int().default(0).notNull(),
   bg_color: text().default("#ffffff").notNull(),
+  shared: int().default(0).notNull(),
+  shared_permission: text(),
+  shared_db_id: text(),
+  shared_db_user_id: text(),
   pinned: int().default(0).notNull(),
 });
 

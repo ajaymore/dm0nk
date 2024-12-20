@@ -2536,9 +2536,10 @@ var log = () => {
 };
 var error = console.error;
 var db;
-var start = (sqlite3) => {
+var start = (sqlite3, dbName2) => {
   log("Running SQLite3 version", sqlite3.version.libVersion);
-  db = "opfs" in sqlite3 ? new sqlite3.oo1.OpfsDb("/mydb6.sqlite3") : new sqlite3.oo1.DB("/mydb6.sqlite3", "ct");
+  log("Database Name:", dbName2);
+  db = "opfs" in sqlite3 ? new sqlite3.oo1.OpfsDb(`/${dbName2}.sqlite3`) : new sqlite3.oo1.DB(`/${dbName2}.sqlite3`, "ct");
   log(
     "opfs" in sqlite3 ? `OPFS is available, created persisted database at ${db.filename}` : `OPFS is not available, created transient database ${db.filename}`
   );
@@ -2566,6 +2567,7 @@ self.onmessage = async (event) => {
     }
   }
 };
+var dbName = "mydb";
 var sqlite3Js = "sqlite3.js";
 var urlParams = new URL(self.location.href).searchParams;
 if (urlParams.has("sqlite3.dir")) {
@@ -2574,6 +2576,9 @@ if (urlParams.has("sqlite3.dir")) {
 if (urlParams.has("sqlite3.logs") && urlParams.get("sqlite3.logs") === "true") {
   log = console.log;
 }
+if (urlParams.has("sqlite3.db")) {
+  dbName = urlParams.get("sqlite3.db");
+}
 importScripts(sqlite3Js);
 self.sqlite3InitModule({
   print: log,
@@ -2581,7 +2586,7 @@ self.sqlite3InitModule({
 }).then(function(sqlite3) {
   log("Done initializing. Running demo...");
   try {
-    start(sqlite3);
+    start(sqlite3, dbName);
   } catch (e) {
     if (e instanceof Error) {
       error("Exception:", e.message);

@@ -7,8 +7,10 @@ import {
   uuid,
   pgEnum,
   text,
+  json,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { int } from "drizzle-orm/mysql-core";
 
 // Define the enum for device platform
 export const device_platform = pgEnum("device_platform", [
@@ -87,3 +89,47 @@ export const refresh_token = pgTable("refresh_tokens", {
   token: text("token").notNull().unique(),
   expiry: timestamp("expiry", { withTimezone: false }).notNull(),
 });
+
+export const changeset001 = pgTable("changesets_001", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`uuid_generate_v4()`),
+  dbId: varchar("db_id", { length: 36 }).notNull(),
+  userId: varchar("user_id", { length: 36 }).notNull(),
+  changeset: text("changeset").notNull(),
+  timestamp: integer("timestamp").notNull(),
+  resourceId: varchar("resource_id", { length: 36 }).notNull(),
+});
+
+// Define the enum for device platform
+export const shareIntent = pgEnum("share_intent", ["read", "read+update"]);
+
+export const sharedResource = pgTable("shared_resources", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`uuid_generate_v4()`),
+  resourceId: varchar("resource_id", { length: 36 }).notNull(),
+  userId: varchar("user_id", { length: 36 })
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  shareIntent: shareIntent("share_intent").notNull(),
+});
+
+export const myDatabase = pgTable("my_databases", {
+  id: uuid("id")
+    .primaryKey()
+    .default(sql`uuid_generate_v4()`),
+  userId: varchar("user_id", { length: 36 })
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  dbIds: json("db_ids").notNull().default("[]"),
+});
+
+// on db create -> push dbId to dbIds set
+// on create,update,delete -> push changeset to changeset_001, payload, id
+// pull my external changesets
+// apply my changesets to db
+// client pushes changesets in regular manner. If shared, get db_id, user_id from share info
+// append shareinfo to pulled changesets
+
+// fetch changeset for dbId in [], userId = id, after timestamp, resource_id | order by timestamp

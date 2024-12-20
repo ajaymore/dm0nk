@@ -1,6 +1,6 @@
 import { Stack, useLocalSearchParams } from "expo-router";
 import { useRouter } from "expo-router";
-import { atom, getDefaultStore, useAtom, useSetAtom } from "jotai";
+import { atom, useAtom, useSetAtom } from "jotai";
 import { useEffect, useRef } from "react";
 import { Platform, TextInput, useWindowDimensions, View } from "react-native";
 import { IconButton } from "react-native-paper";
@@ -20,6 +20,7 @@ import {
 import { useDatabase } from "@/hooks/useDatabase";
 import { notesTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
+import { store } from "@/lib/store";
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
@@ -60,7 +61,6 @@ function NewRegularNote() {
         }
       });
 
-    const store = getDefaultStore();
     const unsub = store.sub(noteAtom, async () => {
       const updates = store.get(noteAtom);
       const [prev] = await db

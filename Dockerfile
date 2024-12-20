@@ -27,6 +27,7 @@ ADD package.server.json package.json
 RUN npm install --omit=dev
 
 COPY --from=build /app/dist /app/dist
+ADD keys keys
 ADD server.js server.js
 
 EXPOSE 3000

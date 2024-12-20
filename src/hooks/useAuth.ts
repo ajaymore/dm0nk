@@ -7,7 +7,6 @@ import { useEffect } from "react";
 
 export function useAuth() {
   const session = useAtomValue(authSessionAtom);
-  console.log("session", session);
 
   useEffect(() => {
     getAuthSessionFromStorageAndUpdateAtom();

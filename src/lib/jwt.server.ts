@@ -2,6 +2,8 @@ import { SignJWT, JWK, importPKCS8, jwtVerify, importSPKI } from "jose";
 import fs from "fs";
 import crypto from "crypto";
 import { addDays } from "date-fns";
+import { db } from "./db.server";
+import { refresh_token } from "./schema.server";
 const pkcs8 = fs.readFileSync("keys/private_key.pem", "utf8");
 const pemPublicKey = fs.readFileSync("keys/public_key.pem", "utf8");
 
@@ -55,14 +57,10 @@ export const verifyToken = async <T>(token: string): Promise<T | null> => {
 export const getTokens = async (id: string) => {
   const accessToken = await generateToken(id, "student", ["student"]);
   const refreshToken = generateRefreshToken();
-  //   await db
-  //     .insertInto("unq_refresh_token")
-  //     .values({
-  //       id: ulid(),
-  //       token: refreshToken,
-  //       expiry: addDays(new Date(), 30),
-  //       user_id: id,
-  //     })
-  //     .execute();
+  await db.insert(refresh_token).values({
+    token: refreshToken,
+    expiry: addDays(new Date(), 30),
+    userId: id,
+  });
   return { accessToken, refreshToken };
 };

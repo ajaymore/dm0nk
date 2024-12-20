@@ -72,6 +72,13 @@ var journal_default = {
       when: 1734088482854,
       tag: "0008_deep_joshua_kane",
       breakpoints: true
+    },
+    {
+      idx: 9,
+      version: "6",
+      when: 1734702292762,
+      tag: "0009_familiar_boomer",
+      breakpoints: true
     }
   ]
 };
@@ -103,6 +110,9 @@ var naive_whiplash_default = "ALTER TABLE `notes` ADD `is_deleted` integer DEFAU
 // src/lib/drizzle/0008_deep_joshua_kane.sql
 var deep_joshua_kane_default = "ALTER TABLE `notes` ADD `pinned` integer DEFAULT 0 NOT NULL;";
 
+// src/lib/drizzle/0009_familiar_boomer.sql
+var familiar_boomer_default = "ALTER TABLE `notes` ADD `shared` integer DEFAULT 0 NOT NULL;--> statement-breakpoint\nALTER TABLE `notes` ADD `shared_permission` text;--> statement-breakpoint\nALTER TABLE `notes` ADD `shared_db_id` text;--> statement-breakpoint\nALTER TABLE `notes` ADD `shared_db_user_id` text;";
+
 // src/lib/drizzle/migrations.js
 var migrations_default = {
   journal: journal_default,
@@ -115,7 +125,8 @@ var migrations_default = {
     m0005: quick_wolfsbane_default,
     m0006: equal_wolfpack_default,
     m0007: naive_whiplash_default,
-    m0008: deep_joshua_kane_default
+    m0008: deep_joshua_kane_default,
+    m0009: familiar_boomer_default
   }
 };
 

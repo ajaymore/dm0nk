@@ -5,7 +5,10 @@ import { Button, TextInput, Text } from "react-native-paper";
 import * as yup from "yup";
 import { Link, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { setAuthSessionAtomAndCommitToStorage } from "@/lib/store";
+import {
+  generateDBName,
+  setAuthSessionAtomAndCommitToStorage,
+} from "@/lib/store";
 import { trpcClient } from "@/lib/trpc.client";
 
 const schema = yup
@@ -30,8 +33,10 @@ export default function SignIn() {
   const onSubmit = async (inputs: SignInSchema) => {
     trpcClient.auth.signInEmailPswd
       .mutate(inputs)
-      .then((data) => {
+      .then(async (data) => {
         setAuthSessionAtomAndCommitToStorage(data);
+        const dbName = generateDBName(data.user.id);
+        await trpcClient.sync.addDBName.mutate(dbName);
         router.replace("/");
       })
       .catch(console.error);

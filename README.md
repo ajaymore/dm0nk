@@ -206,3 +206,22 @@ openssl genpkey -algorithm RSA -out keys/private_key.pem -pkeyopt rsa_keygen_bit
 openssl rsa -pubout -outform PEM -in keys/private_key.pem -out keys/public_key.pem
 JSON.stringify(``).replaceAll('\\n','\n')
 ```
+
+```
+changesets after new Date().getTime() for userId & shared_resource_ids where updater_db!=clientdb
+
+See if you can leverage jotai for undo functionality
+
+local edits are committed locally
+server fetched edit is queued in as well
+While editing - push every 300ms on update
+if offline push to changeset_queue | one single copy
+keep one copy online
+
+Event
+
+on_app_online
+on_app_focus
+on_refresh_click
+on_note_opened
+```

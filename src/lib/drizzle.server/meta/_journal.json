@@ -15,6 +15,20 @@
       "when": 1734618015768,
       "tag": "0001_low_secret_warriors",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1734701941367,
+      "tag": "0002_vengeful_whirlwind",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1734702729399,
+      "tag": "0003_petite_masque",
+      "breakpoints": true
     }
   ]
 }

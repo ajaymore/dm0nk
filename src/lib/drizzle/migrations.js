@@ -10,6 +10,7 @@ import m0005 from './0005_quick_wolfsbane.sql';
 import m0006 from './0006_equal_wolfpack.sql';
 import m0007 from './0007_naive_whiplash.sql';
 import m0008 from './0008_deep_joshua_kane.sql';
+import m0009 from './0009_familiar_boomer.sql';
 
   export default {
     journal,
@@ -22,7 +23,8 @@ m0004,
 m0005,
 m0006,
 m0007,
-m0008
+m0008,
+m0009
     }
   }
   

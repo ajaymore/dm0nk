@@ -45,3 +45,13 @@ export function getDBName() {
   }
   return dbName;
 }
+
+export function generateDBName(userId: string) {
+  const key = `DB_NAME_${userId}`;
+  let dbName = storage.getString(key);
+  if (!dbName) {
+    dbName = uuidV4();
+    storage.set(key, dbName);
+  }
+  return dbName;
+}

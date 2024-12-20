@@ -91,14 +91,14 @@ export const refresh_token = pgTable("refresh_tokens", {
 });
 
 export const changeset001 = pgTable("changesets_001", {
-  id: uuid("id")
-    .primaryKey()
-    .default(sql`uuid_generate_v4()`),
-  dbId: varchar("db_id", { length: 36 }).notNull(),
+  resourceId: varchar("resource_id", { length: 36 }).primaryKey().notNull(),
+  updatedByDb: varchar("updated_by_db_id", { length: 36 }).notNull(),
   userId: varchar("user_id", { length: 36 }).notNull(),
   changeset: text("changeset").notNull(),
   timestamp: integer("timestamp").notNull(),
-  resourceId: varchar("resource_id", { length: 36 }).notNull(),
+  updated_by_id: varchar("updated_by_id", { length: 36 })
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
 });
 
 // Define the enum for device platform

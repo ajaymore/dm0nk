@@ -1,13 +1,11 @@
 import { router } from "./core";
 import { authRouter } from "./routers/auth";
-// import { groceriesRouter } from "./routers/groceries";
-// import { notifyRouter } from "./routers/notify";
+import { syncRouter } from "./routers/sync";
 export { createContext } from "./core";
 
 export const appRouter = router({
   auth: authRouter,
-  //   notify: notifyRouter,
-  //   groceries: groceriesRouter,
+  sync: syncRouter,
 });
 
 // Export type router type signature,

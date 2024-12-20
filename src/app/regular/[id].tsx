@@ -20,7 +20,8 @@ import {
 import { useDatabase } from "@/hooks/useDatabase";
 import { notesTable } from "@/lib/schema";
 import { eq } from "drizzle-orm";
-import { store } from "@/lib/store";
+import { getDBName, store } from "@/lib/store";
+import { useSession } from "@/hooks/useAuth";
 
 const AnimatedTextInput = Animated.createAnimatedComponent(TextInput);
 
@@ -40,9 +41,10 @@ function NewRegularNote() {
   const animatedStylesTextInput = useAnimatedStyle(() => ({
     height: dims.height - 48 * 2 - keyboard.height.value,
   }));
+  const session = useSession();
 
   useEffect(() => {
-    if (!local.id || !db) return;
+    if (!local.id || !db || !session || session === "unset") return;
     setNote({ title: "", data: "" });
 
     db?.select()
@@ -61,37 +63,51 @@ function NewRegularNote() {
         }
       });
 
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const unsub = store.sub(noteAtom, async () => {
-      const updates = store.get(noteAtom);
-      const [prev] = await db
-        .select()
-        .from(notesTable)
-        .where(eq(notesTable.id, local.id as string))
-        .limit(1);
-
-      if (!updates.title && !updates.data) return;
-
-      if (!prev) {
-        await db?.insert(notesTable).values({
-          id: local.id as string,
-          data: note.data,
-          listDisplayView: note.data,
-          title: note.title,
-          type: "Default",
-        });
-      } else {
-        await db
-          ?.update(notesTable)
-          .set({
-            data: updates.data || "",
-            listDisplayView: updates.data.slice(0, 100),
-            title: updates.title || "",
-          })
-          .where(eq(notesTable.id, local.id as string));
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
       }
+      debounceTimer = setTimeout(async () => {
+        const updates = store.get(noteAtom);
+        const [prev] = await db
+          .select()
+          .from(notesTable)
+          .where(eq(notesTable.id, local.id as string))
+          .limit(1);
+
+        if (!updates.title && !updates.data) return;
+
+        if (!prev) {
+          await db?.insert(notesTable).values({
+            id: local.id as string,
+            data: note.data,
+            listDisplayView: note.data,
+            title: note.title,
+            type: "Default",
+          });
+        } else {
+          await db
+            ?.update(notesTable)
+            .set({
+              data: updates.data || "",
+              listDisplayView: updates.data.slice(0, 100),
+              title: updates.title || "",
+            })
+            .where(eq(notesTable.id, local.id as string));
+        }
+        const record = {
+          dbId: getDBName(),
+          userId: session.user.id,
+          changeset: JSON.stringify({}),
+          timestamp: new Date().getTime(),
+          resourceId: local.id,
+          createdById: session.user.id,
+        };
+      }, 300);
     });
     return unsub;
-  }, [local.id, db]);
+  }, [local.id, db, session]);
 
   return (
     <View style={{ paddingTop: insets.top, flex: 1 }}>
